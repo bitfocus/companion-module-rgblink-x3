@@ -1,0 +1,14 @@
+{
+  "name": "rgblink-x",
+  "version": "1.0.0",
+  "description": "RGBlink Venus X3",
+  "manufacturer": "RGBlink",
+  "product": "Venus X3",
+  "shortname": "X3",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Krzysztof Foszcz <foszczkrzysztof@gmail.com>;Marcin Gumułka <marcingum@gmail.com>",
+  "license": "MIT"
+}
