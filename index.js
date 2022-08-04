@@ -56,8 +56,12 @@ instance.prototype.init_udp = function () {
 		})
 
 		// If we get data, thing should be good
-		self.udp.on('data', function () {
-			self.status(self.STATE_OK)
+		self.udp.on('data', function (message, metadata) {
+		    self.status(self.STATE_OK)
+		    console.log(message);
+		    console.log(metadata);
+		    let redeableMsg = message.toString('utf8').toUpperCase()
+			console.log(redeableMsg);
 		})
 
 		self.udp.on('status_change', function (status, message) {
@@ -170,7 +174,9 @@ instance.prototype.action = function (action) {
 		if (self.udp !== undefined) {
 			debug('sending', cmd + tra, 'to', self.config.host)
 
-			self.udp.send(cmd + tra)
+			//self.udp.send(cmd + tra)
+			self.udp.send(cmd)
+			self.udp.send(tra)
 		}
 	}
 }
