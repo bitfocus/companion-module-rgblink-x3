@@ -1,5 +1,14 @@
 // RGBlink Venus X3
 
+/*
+
+* bank - it's configuration of video sourses (which inputs and how are displayed)
+* page - there is 16 pages, in everty page exists different banks
+* select bank to show in future
+* CUT/TAKe => show selected earlier bank on prieview/live output
+
+*/
+
 var udp = require('../../udp')
 var instance_skel = require('../../instance_skel')
 var debug
@@ -34,6 +43,7 @@ instance.prototype.init = function () {
 	debug = self.debug
 	log = self.log
 	self.init_udp()
+	self.init_feedbacks()
 }
 
 instance.prototype.init_udp = function () {
@@ -57,11 +67,21 @@ instance.prototype.init_udp = function () {
 
 		// If we get data, thing should be good
 		self.udp.on('data', function (message, metadata) {
-		    self.status(self.STATE_OK)
-		    console.log(message);
-		    console.log(metadata);
-		    let redeableMsg = message.toString('utf8').toUpperCase()
-			console.log(redeableMsg);
+			self.status(self.STATE_OK)
+			let readableMsg = message.toString('utf8').toUpperCase()
+			//console.log(readableMsg)
+			if (readableMsg.length == 19) {
+				readableMsg = readableMsg.replace(/F/g, 'T')
+				//console.log('\t ' + readableMsg)
+				for (var i = 0; i < self.CHOICES_BANK.length; i++) {
+					if (self.CHOICES_BANK[i].id == readableMsg) {
+						//console.log('\thit bank:' + readableMsg)
+						self.device_status.bank = readableMsg
+						break
+					}
+				}
+			}
+			self.checkFeedbacks('set_bank_and_transition')
 		})
 
 		self.udp.on('status_change', function (status, message) {
@@ -95,6 +115,10 @@ instance.prototype.config_fields = function () {
 			regex: self.REGEX_IP,
 		},
 	]
+}
+
+instance.prototype.device_status = {
+	bank: undefined,
 }
 
 // When module gets deleted
@@ -158,6 +182,42 @@ instance.prototype.actions = function (system) {
 	})
 }
 
+instance.prototype.init_feedbacks = function () {
+	var self = this
+
+	const feedbacks = {}
+	feedbacks['set_bank_and_transition'] = {
+		type: 'boolean',
+		label: 'Feedback for bank and transition',
+		//description: 'Longer description of the feedback',
+		style: {
+			// The default style change for a boolean feedback
+			// The user will be able to customise these values as well as the fields that will be changed
+			color: this.rgb(0, 0, 0),
+			bgcolor: this.rgb(0, 255, 0),
+		},
+		// options is how the user can choose the condition the feedback activates for
+		options: [
+			{
+				type: 'dropdown',
+				id: 'id_bank',
+				label: 'Select Bank:',
+				default: '<T0000681800000080>',
+				choices: self.CHOICES_BANK,
+			},
+		],
+		callback: function (feedback) {
+			// This callback will be called whenever companion wants to check if this feedback is 'active' and should affect the button style
+			if (self.device_status.bank == feedback.options.id_bank) {
+				return true
+			} else {
+				return false
+			}
+		},
+	}
+	self.setFeedbackDefinitions(feedbacks)
+}
+
 instance.prototype.action = function (action) {
 	var self = this
 	var cmd
@@ -174,9 +234,7 @@ instance.prototype.action = function (action) {
 		if (self.udp !== undefined) {
 			debug('sending', cmd + tra, 'to', self.config.host)
 
-			//self.udp.send(cmd + tra)
-			self.udp.send(cmd)
-			self.udp.send(tra)
+			self.udp.send(cmd + tra)
 		}
 	}
 }
