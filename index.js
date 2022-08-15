@@ -7,6 +7,10 @@
 * select bank to show in future
 * CUT/TAKe => show selected earlier bank on prieview/live output
 
+TODO
+* feedback color - RED, not green
+
+
 */
 
 var udp = require('../../udp')
@@ -69,7 +73,7 @@ instance.prototype.init_udp = function () {
 		self.udp.on('data', function (message, metadata) {
 			self.status(self.STATE_OK)
 			let readableMsg = message.toString('utf8').toUpperCase()
-			//console.log(readableMsg)
+			debug(readableMsg)
 			if (readableMsg.length == 19) {
 				readableMsg = readableMsg.replace(/F/g, 'T')
 				//console.log('\t ' + readableMsg)
@@ -194,7 +198,7 @@ instance.prototype.init_feedbacks = function () {
 			// The default style change for a boolean feedback
 			// The user will be able to customise these values as well as the fields that will be changed
 			color: this.rgb(0, 0, 0),
-			bgcolor: this.rgb(0, 255, 0),
+			bgcolor: this.rgb(255, 0, 0),
 		},
 		// options is how the user can choose the condition the feedback activates for
 		options: [
