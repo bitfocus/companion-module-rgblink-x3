@@ -14,6 +14,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		lastSavedPage: undefined,
 		lastLoadedPage: undefined,
 		lastClearedPage: undefined,
+		currentBank: undefined,
 		isPageEmpty: []
 	}
 
@@ -82,11 +83,21 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		}
 	}
 
+	sendLoadBank(bankNumber) {
+		if (this.isValidBankNumber(bankNumber)) {
+			this.sendCommand('68', '18' /* load bank */, this.byteToTwoSignHex(bankNumber), '00', '00')
+		} else {
+			this.debug('Wrong bank number:' + bankNumber)
+		}
+	}
+
 	askAboutStatus() {
 		this.sendCommand('68', '11', '00', '00', '00') // read power status
 		for (var i = 0; i < 15; i++) {
 			this.sendCommand('68', '15', this.byteToTwoSignHex(i), '00', '00') // query page 1 status (empty or not)
 		}
+		this.sendCommand('68', '19', '00', '00', '00',) // Query Which Bank is Current(0x19)
+		//how to ask, Which Page is Current? it's mentioned in API documentation 
 	}
 
 	consumeFeedback(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4) {
@@ -150,8 +161,26 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 				if (this.isValidPageNumber(queredPage)) {
 					let pageStatus = parseInt(DAT3, this.PARSE_INT_HEX_MODE)
 					if (pageStatus == PAGE_IS_EMPTY || pageStatus == PAGE_IS_NOT_EMPTY) {
+						this.emitConnectionStatusOK()
 						this.deviceStatus.isPageEmpty[queredPage] = pageStatus
+						return this.logFeedback(redeableMsg, 'Page status:' + (pageStatus == PAGE_IS_EMPTY ? "empty" : "not empty"))
 					}
+				}
+			} else if (DAT1 == '18') {
+				// load bank
+				let loadedBank = parseInt(DAT2, this.PARSE_INT_HEX_MODE)
+				if (this.isValidBankNumber(loadedBank)) {
+					this.emitConnectionStatusOK()
+					this.deviceStatus.currentBank = loadedBank
+					return this.logFeedback(redeableMsg, 'Bank loaded:' + loadedBank)
+				}
+			} else if (DAT1 == '19') {
+				// load bank
+				let currentBank = parseInt(DAT2, this.PARSE_INT_HEX_MODE)
+				if (this.isValidBankNumber(currentBank)) {
+					this.emitConnectionStatusOK()
+					this.deviceStatus.currentBank = currentBank
+					return this.logFeedback(redeableMsg, 'Current bank:' + currentBank)
 				}
 			}
 		}
@@ -161,6 +190,10 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 
 	isValidPageNumber(pageNumber) {
 		return (pageNumber >= 0 && pageNumber <= 15)
+	}
+
+	isValidBankNumber(bankNumber) {
+		return (bankNumber >= 0 && bankNumber <= 15)
 	}
 
 	logFeedback(redeableMsg, info) {
