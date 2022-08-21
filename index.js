@@ -22,6 +22,7 @@ const FEEDBACK_CURRENT_PAGE = 'feedback_current_page'
 
 const ACTION_POWER_ON_OFF = 'power_on_or_off'
 const ACTION_PAGE_SAVE = 'page_save'
+const ACTION_PAGE_LOAD = 'page_load'
 
 const CHOICES_PART_POWER_ON_OFF = [
 	{ id: POWER_OFF, label: 'Power OFF' },
@@ -35,26 +36,6 @@ for (var i = 0; i < 16; i++) {
 	CHOICES_PART_PAGES.push({ id: i, label: 'Page ' + (i + 1) })
 }
 
-// const SWITCH_MODE_CHOICES_PART = [
-// 	{ id: SWITCH_MODE_AUTO, label: 'Quick/Auto (Live output)' },
-// 	{ id: SWITCH_MODE_TBAR, label: 'T-BAR (Preview)' },
-// ]
-
-// const PIP_MODE_CHOICES_PART = []
-// for (let id in PIP_MODES) {
-// 	PIP_MODE_CHOICES_PART.push({ id: id, label: PIP_MODES[id] })
-// }
-
-// const PART_CHOICES_SWITCH_EFFECTS = []
-// for (let id in SWITCH_EFFECT) {
-// 	PART_CHOICES_SWITCH_EFFECTS.push({ id: id, label: SWITCH_EFFECT[id] })
-// }
-
-// const PART_CHOICES_PIP_LAYERS = [
-// 	{ id: PIP_LAYER_A, label: 'A (main/first)' },
-// 	{ id: PIP_LAYER_B, label: 'B (additional/second)' },
-// ]
-
 class instance extends instance_skel {
 	BACKGROUND_COLOR_PREVIEW
 	BACKGROUND_COLOR_PROGRAM
@@ -64,7 +45,7 @@ class instance extends instance_skel {
 
 	constructor(system, id, config) {
 		super(system, id, config)
-		this.BACKGROUND_COLOR_PREVIEW = this.rgb(0, 255, 0)
+		this.BACKGROUND_COLOR_PREVIEW = this.rgb(0, 128, 0)
 		this.BACKGROUND_COLOR_PROGRAM = this.rgb(255, 0, 0)
 		this.BACKGROUND_COLOR_DEFAULT = this.rgb(0, 0, 0)
 		this.TEXT_COLOR = this.rgb(255, 255, 255)
@@ -166,6 +147,7 @@ class instance extends instance_skel {
 				this.apiConnector.sendPowerOnOrOff(action.options.onOrOff)
 			},
 		}
+
 		actions[ACTION_PAGE_SAVE] = {
 			label: 'Save page',
 			options: [
@@ -183,6 +165,24 @@ class instance extends instance_skel {
 				this.apiConnector.sendSavePage(action.options.pageNumber)
 			},
 		}
+
+		actions[ACTION_PAGE_LOAD] = {
+			label: 'Load page',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Page number',
+					id: 'pageNumber',
+					default: '0',
+					tooltip: 'Choose page',
+					choices: CHOICES_PART_PAGES,
+					minChoicesForSearch: 0,
+				}
+			],
+			callback: (action /*, bank*/) => {
+				this.apiConnector.sendLoadPage(action.options.pageNumber)
+			},
+		}		
 
 		this.setActions(actions)
 	}
@@ -332,6 +332,7 @@ class instance extends instance_skel {
 				},
 			],
 		})
+
 		for (var page = 0; page < 16; page++) {
 			presets.push({
 				category: 'Save page',
@@ -364,6 +365,39 @@ class instance extends instance_skel {
 				],
 			})
 		}
+
+		for (page = 0; page < 16; page++) {
+			presets.push({
+				category: 'Load page',
+				bank: {
+					style: 'text',
+					text: 'Load page\\n' + (page + 1),
+					size: 'auto',
+					color: this.TEXT_COLOR,
+					bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+				},
+				actions: [
+					{
+						action: ACTION_PAGE_LOAD,
+						options: {
+							pageNumber: page,
+						},
+					},
+				],
+				feedbacks: [
+					{
+						type: FEEDBACK_CURRENT_PAGE,
+						options: {
+							pageNumber: page,
+						},
+						style: {
+							color: this.TEXT_COLOR,
+							bgcolor: this.BACKGROUND_COLOR_PREVIEW,
+						},
+					},
+				],
+			})
+		}		
 
 		this.setPresetDefinitions(presets)
 	}
