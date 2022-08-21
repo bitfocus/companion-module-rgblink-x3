@@ -13,16 +13,21 @@ const {
 	RGBLinkX3Connector,
 	POWER_OFF,
 	POWER_ON,
+	PAGE_IS_EMPTY,
+	PAGE_IS_NOT_EMPTY,
 } = require('./rgblink_x3_connector')
 
 var DEFAULT_X3_PORT = 1000
 
 const FEEDBACK_POWER_STATUS = 'feedback_power_on_off'
 const FEEDBACK_CURRENT_PAGE = 'feedback_current_page'
+const FEEDBACK_PAGE_IS_EMPTY = 'feedback_page_empty'
+const FEEDBACK_PAGE_IS_NOT_EMPTY = 'feedback_page_not_empty'
 
 const ACTION_POWER_ON_OFF = 'power_on_or_off'
 const ACTION_PAGE_SAVE = 'page_save'
 const ACTION_PAGE_LOAD = 'page_load'
+const ACTION_PAGE_CLEAR = 'page_clear'
 
 const CHOICES_PART_POWER_ON_OFF = [
 	{ id: POWER_OFF, label: 'Power OFF' },
@@ -37,16 +42,16 @@ for (var i = 0; i < 16; i++) {
 }
 
 class instance extends instance_skel {
-	BACKGROUND_COLOR_PREVIEW
-	BACKGROUND_COLOR_PROGRAM
+	BACKGROUND_COLOR_GREEN
+	BACKGROUND_COLOR_RED
 	BACKGROUND_COLOR_DEFAULT
 	TEXT_COLOR
 	apiConnector = new RGBLinkX3Connector() //creation should be overwrited in init()
 
 	constructor(system, id, config) {
 		super(system, id, config)
-		this.BACKGROUND_COLOR_PREVIEW = this.rgb(0, 128, 0)
-		this.BACKGROUND_COLOR_PROGRAM = this.rgb(255, 0, 0)
+		this.BACKGROUND_COLOR_GREEN = this.rgb(0, 128, 0)
+		this.BACKGROUND_COLOR_RED = this.rgb(255, 0, 0)
 		this.BACKGROUND_COLOR_DEFAULT = this.rgb(0, 0, 0)
 		this.TEXT_COLOR = this.rgb(255, 255, 255)
 		this.initActions()
@@ -182,18 +187,38 @@ class instance extends instance_skel {
 			callback: (action /*, bank*/) => {
 				this.apiConnector.sendLoadPage(action.options.pageNumber)
 			},
-		}		
+		}
+
+		actions[ACTION_PAGE_CLEAR] = {
+			label: 'Clear page',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Page number',
+					id: 'pageNumber',
+					default: '0',
+					tooltip: 'Choose page',
+					choices: CHOICES_PART_PAGES,
+					minChoicesForSearch: 0,
+				}
+			],
+			callback: (action /*, bank*/) => {
+				this.apiConnector.sendClearPage(action.options.pageNumber)
+			},
+		}
 
 		this.setActions(actions)
 	}
 
 	checkAllFeedbacks() {
-		this.checkFeedbacks(FEEDBACK_POWER_STATUS)
-		this.checkFeedbacks(FEEDBACK_CURRENT_PAGE)
-		// this.checkFeedbacks('set_mode')
-		// this.checkFeedbacks('set_pip_mode')
-		// this.checkFeedbacks('set_pip_layer')
-		// this.checkFeedbacks('set_switch_effect')
+		try {
+			this.checkFeedbacks(FEEDBACK_POWER_STATUS)
+			this.checkFeedbacks(FEEDBACK_PAGE_IS_EMPTY)
+			this.checkFeedbacks(FEEDBACK_PAGE_IS_NOT_EMPTY)
+			this.checkFeedbacks(FEEDBACK_CURRENT_PAGE)
+		} catch (ex) {
+			this.debug(ex)
+		}
 	}
 
 	updateConfig(config) {
@@ -218,6 +243,10 @@ class instance extends instance_skel {
 			return feedback.options.onOrOff == this.apiConnector.deviceStatus.powerStatus
 		} else if (feedback.type == FEEDBACK_CURRENT_PAGE) {
 			return feedback.options.pageNumber == this.apiConnector.deviceStatus.currentPage
+		} else if (feedback.type == FEEDBACK_PAGE_IS_EMPTY) {
+			return this.apiConnector.deviceStatus.pageEmptyState[feedback.options.pageNumber] === PAGE_IS_EMPTY
+		} else if (feedback.type == FEEDBACK_PAGE_IS_NOT_EMPTY) {
+			return this.apiConnector.deviceStatus.pageEmptyState[feedback.options.pageNumber] === PAGE_IS_NOT_EMPTY
 		}
 
 		return false
@@ -231,7 +260,7 @@ class instance extends instance_skel {
 			description: 'Power status (ON or OFF)',
 			style: {
 				color: this.rgb(255, 255, 255),
-				bgcolor: this.BACKGROUND_COLOR_PROGRAM,
+				bgcolor: this.BACKGROUND_COLOR_RED,
 			},
 			options: [
 				{
@@ -245,22 +274,65 @@ class instance extends instance_skel {
 				}
 			],
 		}
+
 		feedbacks[FEEDBACK_CURRENT_PAGE] = {
 			type: 'boolean',
 			label: 'Current page',
 			description: 'Current page with presets',
 			style: {
 				color: this.rgb(255, 255, 255),
-				bgcolor: this.BACKGROUND_COLOR_PROGRAM,
+				bgcolor: this.BACKGROUND_COLOR_RED,
 			},
 			options: [
 				{
 					type: 'dropdown',
-					label: 'On or off',
-					id: 'onOrOff',
-					default: '1',
-					tooltip: 'Choose power status',
-					choices: CHOICES_PART_POWER_ON_OFF,
+					label: 'Page number',
+					id: 'pageNumber',
+					default: '0',
+					tooltip: 'Choose page',
+					choices: CHOICES_PART_PAGES,
+					minChoicesForSearch: 0,
+				}
+			],
+		}
+
+		feedbacks[FEEDBACK_PAGE_IS_EMPTY] = {
+			type: 'boolean',
+			label: 'Page is empty',
+			description: 'Feedback, if page is empty',
+			style: {
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+			},
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Page number',
+					id: 'pageNumber',
+					default: '0',
+					tooltip: 'Choose page',
+					choices: CHOICES_PART_PAGES,
+					minChoicesForSearch: 0,
+				}
+			],
+		}
+
+		feedbacks[FEEDBACK_PAGE_IS_NOT_EMPTY] = {
+			type: 'boolean',
+			label: 'Page is NOT empty',
+			description: 'Feedback, if page is NOT empty',
+			style: {
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.BACKGROUND_COLOR_GREEN,
+			},
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Page number',
+					id: 'pageNumber',
+					default: '0',
+					tooltip: 'Choose page',
+					choices: CHOICES_PART_PAGES,
 					minChoicesForSearch: 0,
 				}
 			],
@@ -297,7 +369,7 @@ class instance extends instance_skel {
 					},
 					style: {
 						color: this.TEXT_COLOR,
-						bgcolor: this.BACKGROUND_COLOR_PROGRAM,
+						bgcolor: this.BACKGROUND_COLOR_RED,
 					},
 				},
 			],
@@ -327,7 +399,7 @@ class instance extends instance_skel {
 					},
 					style: {
 						color: this.TEXT_COLOR,
-						bgcolor: this.BACKGROUND_COLOR_PREVIEW,
+						bgcolor: this.BACKGROUND_COLOR_GREEN,
 					},
 				},
 			],
@@ -353,13 +425,23 @@ class instance extends instance_skel {
 				],
 				feedbacks: [
 					{
+						type: FEEDBACK_PAGE_IS_NOT_EMPTY,
+						options: {
+							pageNumber: page,
+						},
+						style: {
+							color: this.TEXT_COLOR,
+							bgcolor: this.BACKGROUND_COLOR_GREEN,
+						},
+					},
+					{
 						type: FEEDBACK_CURRENT_PAGE,
 						options: {
 							pageNumber: page,
 						},
 						style: {
 							color: this.TEXT_COLOR,
-							bgcolor: this.BACKGROUND_COLOR_PREVIEW,
+							bgcolor: this.BACKGROUND_COLOR_RED,
 						},
 					},
 				],
@@ -386,13 +468,66 @@ class instance extends instance_skel {
 				],
 				feedbacks: [
 					{
+						type: FEEDBACK_PAGE_IS_NOT_EMPTY,
+						options: {
+							pageNumber: page,
+						},
+						style: {
+							color: this.TEXT_COLOR,
+							bgcolor: this.BACKGROUND_COLOR_GREEN,
+						},
+					},
+					{
 						type: FEEDBACK_CURRENT_PAGE,
 						options: {
 							pageNumber: page,
 						},
 						style: {
 							color: this.TEXT_COLOR,
-							bgcolor: this.BACKGROUND_COLOR_PREVIEW,
+							bgcolor: this.BACKGROUND_COLOR_RED,
+						},
+					},
+				],
+			})
+		}
+
+		for (page = 0; page < 16; page++) {
+			presets.push({
+				category: 'Clear page',
+				bank: {
+					style: 'text',
+					text: 'Clear page\\n' + (page + 1),
+					size: 'auto',
+					color: this.TEXT_COLOR,
+					bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+				},
+				actions: [
+					{
+						action: ACTION_PAGE_CLEAR,
+						options: {
+							pageNumber: page,
+						},
+					},
+				],
+				feedbacks: [
+					{
+						type: FEEDBACK_PAGE_IS_NOT_EMPTY,
+						options: {
+							pageNumber: page,
+						},
+						style: {
+							color: this.TEXT_COLOR,
+							bgcolor: this.BACKGROUND_COLOR_GREEN,
+						},
+					},
+					{
+						type: FEEDBACK_CURRENT_PAGE,
+						options: {
+							pageNumber: page,
+						},
+						style: {
+							color: this.TEXT_COLOR,
+							bgcolor: this.BACKGROUND_COLOR_RED,
 						},
 					},
 				],

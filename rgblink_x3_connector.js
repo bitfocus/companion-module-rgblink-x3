@@ -28,7 +28,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		lastClearedPage: undefined,
 		currentPage:undefined,
 		currentBank: undefined,
-		isPageEmpty: [],
+		pageEmptyState: [],
 		card1Status: undefined,
 		card2Status: undefined,
 		blackoutStatus: undefined
@@ -217,7 +217,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 					let pageStatus = parseInt(DAT3, this.PARSE_INT_HEX_MODE)
 					if (pageStatus == PAGE_IS_EMPTY || pageStatus == PAGE_IS_NOT_EMPTY) {
 						this.emitConnectionStatusOK()
-						this.deviceStatus.isPageEmpty[queredPage] = pageStatus
+						this.deviceStatus.pageEmptyState[queredPage] = pageStatus
 						return this.logFeedback(redeableMsg, 'Page status:' + (pageStatus == PAGE_IS_EMPTY ? "empty" : "not empty"))
 					}
 				}
@@ -309,3 +309,6 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 module.exports.RGBLinkX3Connector = RGBLinkX3Connector
 module.exports.POWER_ON = POWER_ON
 module.exports.POWER_OFF = POWER_OFF
+module.exports.PAGE_IS_EMPTY = PAGE_IS_EMPTY
+module.exports.PAGE_IS_NOT_EMPTY = PAGE_IS_NOT_EMPTY
+
