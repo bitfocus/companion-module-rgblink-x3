@@ -1,247 +1,282 @@
-// RGBlink Venus X3
-
 /*
 
-* bank - it's configuration of video sourses (which inputs and how are displayed)
-* page - there is 16 pages, in everty page exists different banks
-* select bank to show in future
-* CUT/TAKe => show selected earlier bank on prieview/live output
-
-TODO
-* feedback color - RED, not green
-
+usefull commands
+* yarn format
+* yarn headless
+* yarn dev-headless
 
 */
 
-var udp = require('../../udp')
-var instance_skel = require('../../instance_skel')
-var debug
-var log
+const instance_skel = require('../../instance_skel')
 
-function instance(system, id, config) {
-	var self = this
+const {
+	RGBLinkX3Connector,
+} = require('./rgblink_x3_connector')
 
-	// super-constructor
-	instance_skel.apply(this, arguments)
+var DEFAULT_X3_PORT = 1000
 
-	self.actions() // export actions
+// const SOURCE_CHOICES_PART = [
+// 	{ id: '1', label: '1' },
+// 	{ id: '2', label: '2' },
+// 	{ id: '3', label: '3' },
+// 	{ id: '4', label: '4' },
+// ]
 
-	return self
-}
+// const SWITCH_MODE_CHOICES_PART = [
+// 	{ id: SWITCH_MODE_AUTO, label: 'Quick/Auto (Live output)' },
+// 	{ id: SWITCH_MODE_TBAR, label: 'T-BAR (Preview)' },
+// ]
 
-instance.prototype.updateConfig = function (config) {
-	var self = this
+// const PIP_MODE_CHOICES_PART = []
+// for (let id in PIP_MODES) {
+// 	PIP_MODE_CHOICES_PART.push({ id: id, label: PIP_MODES[id] })
+// }
 
-	if (self.udp !== undefined) {
-		self.udp.destroy()
-		delete self.udp
+// const PART_CHOICES_SWITCH_EFFECTS = []
+// for (let id in SWITCH_EFFECT) {
+// 	PART_CHOICES_SWITCH_EFFECTS.push({ id: id, label: SWITCH_EFFECT[id] })
+// }
+
+// const PART_CHOICES_PIP_LAYERS = [
+// 	{ id: PIP_LAYER_A, label: 'A (main/first)' },
+// 	{ id: PIP_LAYER_B, label: 'B (additional/second)' },
+// ]
+
+class instance extends instance_skel {
+	BACKGROUND_COLOR_PREVIEW
+	BACKGROUND_COLOR_PROGRAM
+	BACKGROUND_COLOR_DEFAULT
+	TEXT_COLOR
+	apiConnector = new RGBLinkX3Connector() //creation should be overwrited in init()
+
+	constructor(system, id, config) {
+		super(system, id, config)
+		this.BACKGROUND_COLOR_PREVIEW = this.rgb(0, 255, 0)
+		this.BACKGROUND_COLOR_PROGRAM = this.rgb(255, 0, 0)
+		this.BACKGROUND_COLOR_DEFAULT = this.rgb(0, 0, 0)
+		this.TEXT_COLOR = this.rgb(255, 255, 255)
+		this.initActions()
+		this.initPresets()
 	}
 
-	self.config = config
-	self.init_udp()
-}
-
-instance.prototype.init = function () {
-	var self = this
-
-	debug = self.debug
-	log = self.log
-	self.init_udp()
-	self.init_feedbacks()
-}
-
-instance.prototype.init_udp = function () {
-	var self = this
-
-	if (self.udp !== undefined) {
-		self.udp.destroy()
-		delete self.udp
-	}
-
-	self.status(self.STATE_WARNING, 'Connecting')
-
-	if (self.config.host !== undefined) {
-		self.udp = new udp(self.config.host, 1000)
-
-		self.udp.on('error', function (err) {
-			debug('Network error', err)
-			self.status(self.STATE_ERROR, err)
-			self.log('error', 'Network error: ' + err.message)
-		})
-
-		// If we get data, thing should be good
-		self.udp.on('data', function (message, metadata) {
-			self.status(self.STATE_OK)
-			let readableMsg = message.toString('utf8').toUpperCase()
-			debug(readableMsg)
-			if (readableMsg.length == 19) {
-				readableMsg = readableMsg.replace(/F/g, 'T')
-				//console.log('\t ' + readableMsg)
-				for (var i = 0; i < self.CHOICES_BANK.length; i++) {
-					if (self.CHOICES_BANK[i].id == readableMsg) {
-						//console.log('\thit bank:' + readableMsg)
-						self.device_status.bank = readableMsg
-						break
-					}
-				}
-			}
-			self.checkFeedbacks('set_bank_and_transition')
-		})
-
-		self.udp.on('status_change', function (status, message) {
-			self.status(status, message)
-		})
-	}
-}
-
-// Return config fields for web config
-instance.prototype.config_fields = function () {
-	var self = this
-
-	return [
-		{
-			type: 'text',
-			id: 'info',
-			label: 'Information',
-			width: 12,
-			value: `
-				<div class="alert alert-danger">
-					<h3> RGBlink VENUS X3</h3>
-					This module will connect to a RGBlink Processor Venus X3.
-				</div>
-			`,
-		},
-		{
-			type: 'textinput',
-			id: 'host',
-			label: 'Target IP',
-			width: 6,
-			regex: self.REGEX_IP,
-		},
-	]
-}
-
-instance.prototype.device_status = {
-	bank: undefined,
-}
-
-// When module gets deleted
-instance.prototype.destroy = function () {
-	var self = this
-
-	if (self.udp !== undefined) {
-		self.udp.destroy()
-	}
-
-	debug('destroy', self.id)
-}
-
-instance.prototype.CHOICES_BANK = [
-	{ id: '<T0000681800000080>', label: 'Bank 1' },
-	{ id: '<T0000681801000081>', label: 'Bank 2' },
-	{ id: '<T0000681802000082>', label: 'Bank 3' },
-	{ id: '<T0000681803000083>', label: 'Bank 4' },
-	{ id: '<T0000681804000084>', label: 'Bank 5' },
-	{ id: '<T0000681805000085>', label: 'Bank 6' },
-	{ id: '<T0000681806000086>', label: 'Bank 7' },
-	{ id: '<T0000681807000087>', label: 'Bank 8' },
-	{ id: '<T0000681808000088>', label: 'Bank 9' },
-	{ id: '<T0000681809000089>', label: 'Bank 10' },
-	{ id: '<T000068180a00008a>', label: 'Bank 11' },
-	{ id: '<T000068180b00008b>', label: 'Bank 12' },
-	{ id: '<T000068180c00008c>', label: 'Bank 13' },
-	{ id: '<T000068180d00008d>', label: 'Bank 14' },
-	{ id: '<T000068180e00008e>', label: 'Bank 15' },
-	{ id: '<T000068180f00008f>', label: 'Bank 16' },
-]
-
-instance.prototype.CHOICES_TRANSMISION = [
-	{ id: '<T0000780000010079>', label: 'CUT' },
-	{ id: '<T0000780000000078>', label: 'TAKE' },
-]
-
-instance.prototype.actions = function (system) {
-	var self = this
-
-	self.system.emit('instance_actions', self.id, {
-		send: {
-			label: 'Select Bank',
-			options: [
-				{
-					type: 'dropdown',
-					id: 'id_send',
-					label: 'Select Bank:',
-					default: '<T0000681800000080>',
-					choices: self.CHOICES_BANK,
-				},
-				{
-					type: 'dropdown',
-					id: 'id_trans',
-					label: 'Select Transition:',
-					default: '<T0000780000000078>',
-					choices: self.CHOICES_TRANSMISION,
-				},
-			],
-		},
-	})
-}
-
-instance.prototype.init_feedbacks = function () {
-	var self = this
-
-	const feedbacks = {}
-	feedbacks['set_bank_and_transition'] = {
-		type: 'boolean',
-		label: 'Feedback for bank and transition',
-		//description: 'Longer description of the feedback',
-		style: {
-			// The default style change for a boolean feedback
-			// The user will be able to customise these values as well as the fields that will be changed
-			color: this.rgb(0, 0, 0),
-			bgcolor: this.rgb(255, 0, 0),
-		},
-		// options is how the user can choose the condition the feedback activates for
-		options: [
+	config_fields() {
+		return [
 			{
-				type: 'dropdown',
-				id: 'id_bank',
-				label: 'Select Bank:',
-				default: '<T0000681800000080>',
-				choices: self.CHOICES_BANK,
+				type: 'text',
+				id: 'info',
+				label: 'Information',
+				width: 12,
+				value: `
+					<div class="alert alert-danger">
+						<h3> RGBlink VENUS X3</h3>
+						This module will connect to a RGBlink Processor Venus X3.
+					</div>
+				`
 			},
-		],
-		callback: function (feedback) {
-			// This callback will be called whenever companion wants to check if this feedback is 'active' and should affect the button style
-			if (self.device_status.bank == feedback.options.id_bank) {
-				return true
-			} else {
-				return false
-			}
-		},
+			{
+				type: 'textinput',
+				id: 'host',
+				label: 'IP address of RGBlink VENUS X3 device',
+				width: 12,
+				regex: this.REGEX_IP,
+			},
+			{
+				type: 'text',
+				id: 'info',
+				width: 12,
+				label: 'Port',
+				value: 'Will be used default port ' + this.config.port,
+			},
+			{
+				type: 'checkbox',
+				label: 'Status polling (ask for status every second)',
+				id: 'polling',
+				width: 12,
+				default: true,
+			},
+		]
 	}
-	self.setFeedbackDefinitions(feedbacks)
-}
 
-instance.prototype.action = function (action) {
-	var self = this
-	var cmd
-	var tra
-
-	switch (action.action) {
-		case 'send':
-			cmd = action.options.id_send
-			tra = action.options.id_trans
-			break
+	destroy() {
+		this.debug('RGBlink X3: destroy')
+		this.apiConnector.onDestroy()
+		this.debug('destroy', this.id)
 	}
 
-	if (cmd !== undefined) {
-		if (self.udp !== undefined) {
-			debug('sending', cmd + tra, 'to', self.config.host)
-
-			self.udp.send(cmd + tra)
+	init() {
+		try {
+			this.debug('RGBlink X3: init')
+			this.initApiConnector()
+			this.initFeedbacks()
+		} catch (ex) {
+			this.status(this.STATUS_ERROR, ex)
+			this.debug(ex)
 		}
 	}
+
+	initApiConnector() {
+		let self = this
+		this.apiConnector = new RGBLinkX3Connector(this.config.host, DEFAULT_X3_PORT, this.debug, this.config.polling)
+		this.apiConnector.on(this.apiConnector.EVENT_NAME_ON_DEVICE_STATE_CHANGED, () => {
+			self.checkAllFeedbacks()
+		})
+		this.apiConnector.on(this.apiConnector.EVENT_NAME_ON_CONNECTION_OK, (message) => {
+			self.status(self.STATUS_OK, message)
+		})
+		this.apiConnector.on(this.apiConnector.EVENT_NAME_ON_CONNECTION_WARNING, (message) => {
+			self.status(self.STATUS_WARNING, message)
+		})
+		this.apiConnector.on(this.apiConnector.EVENT_NAME_ON_CONNECTION_ERROR, (message) => {
+			self.status(self.STATUS_ERROR, message)
+		})
+		this.status(this.STATUS_WARNING, 'Connecting')
+		this.apiConnector.sendConnectMessage()
+		this.apiConnector.askAboutStatus()
+	}
+
+	initActions() {
+		let actions = {}
+
+		// actions['switch_mode_and_source'] = {
+		// 	label: 'Select source and target',
+		// 	options: [
+		// 		{
+		// 			type: 'dropdown',
+		// 			label: 'Source number',
+		// 			id: 'sourceNumber',
+		// 			default: '1',
+		// 			tooltip: 'Choose source number, which should be selected',
+		// 			choices: SOURCE_CHOICES_PART,
+		// 			minChoicesForSearch: 0,
+		// 		},
+		// 		{
+		// 			type: 'dropdown',
+		// 			label: 'Mode',
+		// 			id: 'mode',
+		// 			default: SWITCH_MODE_AUTO,
+		// 			tooltip: 'Choose mode',
+		// 			choices: SWITCH_MODE_CHOICES_PART,
+		// 			minChoicesForSearch: 0,
+		// 		},
+		// 	],
+		// 	callback: (action /*, bank*/) => {
+		// 		this.apiConnector.sendSwitchModeMessage(action.options.mode)
+		// 		this.apiConnector.sendPIPModeMessage(PIP_MODE_OFF)
+		// 		this.apiConnector.sendSwitchToSourceMessage(action.options.sourceNumber)
+		// 	},
+		// }
+
+		this.setActions(actions)
+	}
+
+	checkAllFeedbacks() {
+		// this.checkFeedbacks('set_source')
+		// this.checkFeedbacks('set_source_preview')
+		// this.checkFeedbacks('set_mode')
+		// this.checkFeedbacks('set_pip_mode')
+		// this.checkFeedbacks('set_pip_layer')
+		// this.checkFeedbacks('set_switch_effect')
+	}
+
+	updateConfig(config) {
+		this.debug('RGBlink X3: updateConfig')
+		let resetConnection = false
+
+		if (this.config.host != config.host) {
+			resetConnection = true
+		}
+
+		this.config = config
+
+		if (resetConnection === true) {
+			this.apiConnector.createSocket(config.host, DEFAULT_X3_PORT)
+		}
+
+		this.apiConnector.setPolling(config.polling)
+	}
+
+	feedback(feedback /*, bank*/) {
+		this.debug('TODO feedback checking:' + feedback)
+		// if (feedback.type == 'set_source') {
+		// 	return feedback.options.sourceNumber == this.apiConnector.deviceStatus.liveSource
+		// } else if (feedback.type == 'set_source_preview') {
+		// 	return feedback.options.sourceNumber == this.apiConnector.deviceStatus.prevSource
+		// } else if (feedback.type == 'set_mode') {
+		// 	return feedback.options.mode == this.apiConnector.deviceStatus.switchMode
+		// } else if (feedback.type == 'set_pip_mode') {
+		// 	return feedback.options.mode == this.apiConnector.deviceStatus.pipMode
+		// } else if (feedback.type == 'set_switch_effect') {
+		// 	return feedback.options.mode == this.apiConnector.deviceStatus.switchEffect
+		// } else if (feedback.type == 'set_pip_layer') {
+		// 	return feedback.options.layer == this.apiConnector.deviceStatus.pipLayer
+		// }
+
+		return false
+	}
+
+	initFeedbacks() {
+		const feedbacks = {}
+		// feedbacks['set_source'] = {
+		// 	type: 'boolean',
+		// 	label: 'Live source',
+		// 	description: 'Source of HDMI signal',
+		// 	style: {
+		// 		color: this.rgb(255, 255, 255),
+		// 		bgcolor: this.BACKGROUND_COLOR_PROGRAM,
+		// 	},
+		// 	options: [
+		// 		{
+		// 			type: 'dropdown',
+		// 			label: 'Source number',
+		// 			id: 'sourceNumber',
+		// 			default: '1',
+		// 			tooltip: 'Choose source number',
+		// 			choices: SOURCE_CHOICES_PART,
+		// 			minChoicesForSearch: 0,
+		// 		},
+		// 	],
+		// }
+		this.setFeedbackDefinitions(feedbacks)
+	}
+
+	initPresets() {
+		let presets = []
+		// for (var i = 1; i <= 4; i++) {
+		// 	presets.push({
+		// 		category: 'Select source on live output',
+		// 		bank: {
+		// 			style: 'text',
+		// 			text: 'Live source\\n' + i,
+		// 			size: 'auto',
+		// 			color: this.TEXT_COLOR,
+		// 			bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+		// 		},
+		// 		actions: [
+		// 			{
+		// 				action: 'switch_mode_and_source',
+		// 				options: {
+		// 					sourceNumber: i,
+		// 					mode: SWITCH_MODE_AUTO,
+		// 				},
+		// 			},
+		// 		],
+		// 		feedbacks: [
+		// 			{
+		// 				type: 'set_source',
+		// 				options: {
+		// 					sourceNumber: i,
+		// 				},
+		// 				style: {
+		// 					color: this.TEXT_COLOR,
+		// 					bgcolor: this.BACKGROUND_COLOR_PROGRAM,
+		// 				},
+		// 			},
+		// 		],
+		// 	})
+		// }
+
+		this.setPresetDefinitions(presets)
+	}
 }
 
-instance_skel.extendedBy(instance)
 exports = module.exports = instance

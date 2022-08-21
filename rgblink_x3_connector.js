@@ -298,6 +298,6 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 	}
 }
 
-module.exports.RGBLinkMiniConnector = RGBLinkX3Connector
+module.exports.RGBLinkX3Connector = RGBLinkX3Connector
 module.exports.POWER_ON = POWER_ON
 module.exports.POWER_OFF = POWER_OFF
