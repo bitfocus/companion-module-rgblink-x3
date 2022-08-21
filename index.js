@@ -18,13 +18,22 @@ const {
 var DEFAULT_X3_PORT = 1000
 
 const FEEDBACK_POWER_STATUS = 'feedback_power_on_off'
+const FEEDBACK_CURRENT_PAGE = 'feedback_current_page'
 
 const ACTION_POWER_ON_OFF = 'power_on_or_off'
+const ACTION_PAGE_SAVE = 'page_save'
 
 const CHOICES_PART_POWER_ON_OFF = [
 	{ id: POWER_OFF, label: 'Power OFF' },
 	{ id: POWER_ON, label: 'Power ON' },
 ]
+
+const CHOICES_PART_PAGES = [
+	//	{ id: 0, label: 'Page 1' },
+]
+for (var i = 0; i < 16; i++) {
+	CHOICES_PART_PAGES.push({ id: i, label: 'Page ' + (i + 1) })
+}
 
 // const SWITCH_MODE_CHOICES_PART = [
 // 	{ id: SWITCH_MODE_AUTO, label: 'Quick/Auto (Live output)' },
@@ -157,13 +166,30 @@ class instance extends instance_skel {
 				this.apiConnector.sendPowerOnOrOff(action.options.onOrOff)
 			},
 		}
+		actions[ACTION_PAGE_SAVE] = {
+			label: 'Save page',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Page number',
+					id: 'pageNumber',
+					default: '0',
+					tooltip: 'Choose page',
+					choices: CHOICES_PART_PAGES,
+					minChoicesForSearch: 0,
+				}
+			],
+			callback: (action /*, bank*/) => {
+				this.apiConnector.sendSavePage(action.options.pageNumber)
+			},
+		}
 
 		this.setActions(actions)
 	}
 
 	checkAllFeedbacks() {
 		this.checkFeedbacks(FEEDBACK_POWER_STATUS)
-		// this.checkFeedbacks('set_source_preview')
+		this.checkFeedbacks(FEEDBACK_CURRENT_PAGE)
 		// this.checkFeedbacks('set_mode')
 		// this.checkFeedbacks('set_pip_mode')
 		// this.checkFeedbacks('set_pip_layer')
@@ -190,16 +216,8 @@ class instance extends instance_skel {
 	feedback(feedback /*, bank*/) {
 		if (feedback.type == FEEDBACK_POWER_STATUS) {
 			return feedback.options.onOrOff == this.apiConnector.deviceStatus.powerStatus
-			// } else if (feedback.type == 'set_source_preview') {
-			// 	return feedback.options.sourceNumber == this.apiConnector.deviceStatus.prevSource
-			// } else if (feedback.type == 'set_mode') {
-			// 	return feedback.options.mode == this.apiConnector.deviceStatus.switchMode
-			// } else if (feedback.type == 'set_pip_mode') {
-			// 	return feedback.options.mode == this.apiConnector.deviceStatus.pipMode
-			// } else if (feedback.type == 'set_switch_effect') {
-			// 	return feedback.options.mode == this.apiConnector.deviceStatus.switchEffect
-			// } else if (feedback.type == 'set_pip_layer') {
-			// 	return feedback.options.layer == this.apiConnector.deviceStatus.pipLayer
+		} else if (feedback.type == FEEDBACK_CURRENT_PAGE) {
+			return feedback.options.pageNumber == this.apiConnector.deviceStatus.currentPage
 		}
 
 		return false
@@ -211,6 +229,26 @@ class instance extends instance_skel {
 			type: 'boolean',
 			label: 'Power status',
 			description: 'Power status (ON or OFF)',
+			style: {
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.BACKGROUND_COLOR_PROGRAM,
+			},
+			options: [
+				{
+					type: 'dropdown',
+					label: 'On or off',
+					id: 'onOrOff',
+					default: '1',
+					tooltip: 'Choose power status',
+					choices: CHOICES_PART_POWER_ON_OFF,
+					minChoicesForSearch: 0,
+				}
+			],
+		}
+		feedbacks[FEEDBACK_CURRENT_PAGE] = {
+			type: 'boolean',
+			label: 'Current page',
+			description: 'Current page with presets',
 			style: {
 				color: this.rgb(255, 255, 255),
 				bgcolor: this.BACKGROUND_COLOR_PROGRAM,
@@ -293,7 +331,39 @@ class instance extends instance_skel {
 					},
 				},
 			],
-		})		
+		})
+		for (var page = 0; page < 16; page++) {
+			presets.push({
+				category: 'Save page',
+				bank: {
+					style: 'text',
+					text: 'Save page\\n' + (page + 1),
+					size: 'auto',
+					color: this.TEXT_COLOR,
+					bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+				},
+				actions: [
+					{
+						action: ACTION_PAGE_SAVE,
+						options: {
+							pageNumber: page,
+						},
+					},
+				],
+				feedbacks: [
+					{
+						type: FEEDBACK_CURRENT_PAGE,
+						options: {
+							pageNumber: page,
+						},
+						style: {
+							color: this.TEXT_COLOR,
+							bgcolor: this.BACKGROUND_COLOR_PREVIEW,
+						},
+					},
+				],
+			})
+		}
 
 		this.setPresetDefinitions(presets)
 	}

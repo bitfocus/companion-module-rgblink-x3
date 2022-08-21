@@ -26,6 +26,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		lastSavedPage: undefined,
 		lastLoadedPage: undefined,
 		lastClearedPage: undefined,
+		currentPage:undefined,
 		currentBank: undefined,
 		isPageEmpty: [],
 		card1Status: undefined,
@@ -150,9 +151,6 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		this.sendCommand('68', '23', '00', '00', '00',) // Query Which Page is Current(0x23)
 		this.sendCommand('68', '19', '00', '00', '00',) // Query Which Bank is Current(0x19)
 		this.sendCommand('78', '07', '00', '00', '00', '00') // undocummented query blackout effect
-
-		//this.sendCommandWithAddr('05', '68', '49', '00', '00', '00') // undocummented/this not work! - ask about card 1 on/off status
-		//this.sendCommandWithAddr('06', '68', '49', '00', '00', '00') // undocummented/this not work! - ask about card 1 on/off status
 	}
 
 	consumeFeedback(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4) {
@@ -187,6 +185,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 				if (this.isValidPageNumber(savedPage)) {
 					this.emitConnectionStatusOK()
 					this.deviceStatus.lastSavedPage = savedPage
+					this.deviceStatus.currentPage = savedPage
 					return this.logFeedback(redeableMsg, 'Page saved:' + savedPage)
 				}
 			} else if (DAT1 == '13') {
@@ -195,6 +194,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 				if (this.isValidPageNumber(loadedPage)) {
 					this.emitConnectionStatusOK()
 					this.deviceStatus.lastLoadedPage = loadedPage
+					this.deviceStatus.currentPage = loadedPage
 					return this.logFeedback(redeableMsg, 'Page loaded:' + loadedPage)
 				}
 			} else if (DAT1 == '14') {
