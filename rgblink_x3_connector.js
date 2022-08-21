@@ -9,6 +9,15 @@ const PAGE_IS_NOT_EMPTY = 1
 const CARD_TURN_OFF = 0
 const CARD_TURN_ON = 1
 
+const SWITCH_TARGET_PROGRAM = 0
+const SWITCH_TARGET_PREVIEW = 1
+
+const SWITCH_TRANSITION_DISSOLVE_TAKE = 0
+const SWITCH_TRANSITION_CUT_ = 1
+
+const BLACKOUT_OFF = 0
+const BLACKOUT_ON = 1
+
 class RGBLinkX3Connector extends RGBLinkApiConnector {
 	EVENT_NAME_ON_DEVICE_STATE_CHANGED = 'on_device_state_changed'
 
@@ -21,6 +30,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		isPageEmpty: [],
 		card1Status: undefined,
 		card2Status: undefined,
+		blackoutStatus: undefined
 	}
 
 	constructor(host, port, debug, polling) {
@@ -110,14 +120,38 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		}
 	}
 
+	sendSwitchPresetBank(programOrPreview, switchTransitionEffect) {
+		if (programOrPreview == SWITCH_TARGET_PREVIEW || programOrPreview == SWITCH_TARGET_PROGRAM) {
+			let target = this.byteToTwoSignHex(programOrPreview)
+			if (switchTransitionEffect == SWITCH_TRANSITION_CUT_ || switchTransitionEffect == SWITCH_TRANSITION_DISSOLVE_TAKE) {
+				let transition = this.byteToTwoSignHex(switchTransitionEffect)
+				this.sendCommand('78', '00', target, transition, '00')
+			} else {
+				this.debug('Wrong transition:' + switchTransitionEffect)
+			}
+		} else {
+			this.debug('Wrong target:' + programOrPreview)
+		}
+	}
+
+	sendSwitchToBlackout(blackoutOnOrOff) {
+		if (blackoutOnOrOff == BLACKOUT_ON || blackoutOnOrOff == BLACKOUT_OFF) {
+			this.sendCommand('78', '06', this.byteToTwoSignHex(blackoutOnOrOff), '00', '00')
+		} else {
+			this.debug('Wrong blackout status:' + blackoutOnOrOff)
+		}
+	}
+
 	askAboutStatus() {
 		this.sendCommand('68', '11', '00', '00', '00') // read power status
 		for (var i = 0; i < 15; i++) {
 			this.sendCommand('68', '15', this.byteToTwoSignHex(i), '00', '00') // query page 1 status (empty or not)
 		}
-		this.sendCommand('68', '19', '00', '00', '00',) // Query Which Bank is Current(0x19)
-		this.sendCommandWithAddr('05', '68', '49', '01', '00', '') // undocummented - ask about card 1 on/off status
-		this.sendCommandWithAddr('06', '68', '49', '01', '00', '') // undocummented - ask about card 1 on/off status
+		//this.sendCommand('68', '19', '00', '00', '00',) // Query Which Bank is Current(0x19)
+		//this.sendCommandWithAddr('05', '68', '49', '01', '00', '') // undocummented - ask about card 1 on/off status
+		//this.sendCommandWithAddr('06', '68', '49', '01', '00', '') // undocummented - ask about card 1 on/off status
+		//this.sendCommand('78', '01', '00', '00', '00',) // undocummented query switch effect
+		//this.sendCommand('78', '07', '00', '00', '00',) // undocummented query blackout effect
 		//how to ask, Which Page is Current? it's mentioned in API documentation 
 	}
 
@@ -217,6 +251,29 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 							return this.logFeedback(redeableMsg, 'Card 2 status:' + (turnStatus == CARD_TURN_OFF ? "off" : "on"))
 						}
 					}
+				}
+			}
+		} else if (CMD == '78') {
+			if (DAT1 == '00' || DAT1 == '01') {
+				//Switch Preset Bank(0x00)
+				if (DAT2 == SWITCH_TARGET_PROGRAM || DAT2 == SWITCH_TARGET_PREVIEW) {
+					if (DAT3 == SWITCH_TRANSITION_CUT_ || DAT3 == SWITCH_TRANSITION_DISSOLVE_TAKE) {
+						let target = parseInt(DAT2, this.PARSE_INT_HEX_MODE)
+						let transition = parseInt(DAT3, this.PARSE_INT_HEX_MODE)
+						this.emitConnectionStatusOK()
+						return this.logFeedback(redeableMsg, 'Switch done:' + (target == SWITCH_TARGET_PREVIEW ? "preview" : "program") + ' ' + (transition == SWITCH_TRANSITION_CUT_ ? "cut" : "dissolve"))
+					}
+				}
+			} else if (DAT1 == '06' || DAT1 == '07') {
+				// Switch to blackout(0x06)
+				if (DAT2 == '00') {
+					this.emitConnectionStatusOK()
+					this.deviceStatus.blackoutStatus = BLACKOUT_OFF
+					return this.logFeedback(redeableMsg, 'Blackout OFF')
+				} else if (DAT2 == '01') {
+					this.emitConnectionStatusOK()
+					this.deviceStatus.blackoutStatus = BLACKOUT_ON
+					return this.logFeedback(redeableMsg, 'Blackout ON')
 				}
 			}
 		}
