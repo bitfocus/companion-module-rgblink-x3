@@ -147,12 +147,12 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		for (var i = 0; i < 15; i++) {
 			this.sendCommand('68', '15', this.byteToTwoSignHex(i), '00', '00') // query page 1 status (empty or not)
 		}
+		this.sendCommand('68', '23', '00', '00', '00',) // Query Which Page is Current(0x23)
 		this.sendCommand('68', '19', '00', '00', '00',) // Query Which Bank is Current(0x19)
 		this.sendCommand('78', '07', '00', '00', '00', '00') // undocummented query blackout effect
-		
+
 		//this.sendCommandWithAddr('05', '68', '49', '00', '00', '00') // undocummented/this not work! - ask about card 1 on/off status
 		//this.sendCommandWithAddr('06', '68', '49', '00', '00', '00') // undocummented/this not work! - ask about card 1 on/off status
-		//how to ask, Which Page is Current? it's mentioned in API documentation 
 	}
 
 	consumeFeedback(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4) {
@@ -230,12 +230,20 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 					return this.logFeedback(redeableMsg, 'Bank loaded:' + loadedBank)
 				}
 			} else if (DAT1 == '19') {
-				// load bank
+				// which bank is current
 				let currentBank = parseInt(DAT2, this.PARSE_INT_HEX_MODE)
 				if (this.isValidBankNumber(currentBank)) {
 					this.emitConnectionStatusOK()
 					this.deviceStatus.currentBank = currentBank
 					return this.logFeedback(redeableMsg, 'Current bank:' + currentBank)
+				}
+			} else if (DAT1 == '23') {
+				// which page is current
+				let currentPage = parseInt(DAT2, this.PARSE_INT_HEX_MODE)
+				if (this.isValidPageNumber(currentPage)) {
+					this.emitConnectionStatusOK()
+					this.deviceStatus.currentPage = currentPage
+					return this.logFeedback(redeableMsg, 'Current page:' + currentPage)
 				}
 			} else if (DAT1 == '48' || DAT1 == '49') {
 				// Turn off and on output card (0x48)
