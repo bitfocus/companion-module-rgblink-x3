@@ -6,6 +6,9 @@ const POWER_ON = 1
 const PAGE_IS_EMPTY = 0
 const PAGE_IS_NOT_EMPTY = 1
 
+const CARD_TURN_OFF = 0
+const CARD_TURN_ON = 1
+
 class RGBLinkX3Connector extends RGBLinkApiConnector {
 	EVENT_NAME_ON_DEVICE_STATE_CHANGED = 'on_device_state_changed'
 
@@ -15,7 +18,9 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		lastLoadedPage: undefined,
 		lastClearedPage: undefined,
 		currentBank: undefined,
-		isPageEmpty: []
+		isPageEmpty: [],
+		card1Status: undefined,
+		card2Status: undefined,
 	}
 
 	constructor(host, port, debug, polling) {
@@ -91,12 +96,28 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		}
 	}
 
+	sendCardOnOrOff(cardNumber, turnOnorOff) {
+		if (cardNumber == 1 || cardNumber == 1) {
+			let cardAddr = 4 + cardNumber // 0x05(card 1), 0x06(card 2)
+			cardAddr = this.byteToTwoSignHex(cardAddr)
+			if (turnOnorOff == CARD_TURN_ON || turnOnorOff == CARD_TURN_OFF) {
+				this.sendCommandWithAddr(cardAddr, '68', '48', this.byteToTwoSignHex(turnOnorOff), '00', '00')
+			} else {
+				this.debug("Wrong turn on/off parameter:" + turnOnorOff)
+			}
+		} else {
+			this.debug('Wrong card number:' + cardNumber)
+		}
+	}
+
 	askAboutStatus() {
 		this.sendCommand('68', '11', '00', '00', '00') // read power status
 		for (var i = 0; i < 15; i++) {
 			this.sendCommand('68', '15', this.byteToTwoSignHex(i), '00', '00') // query page 1 status (empty or not)
 		}
 		this.sendCommand('68', '19', '00', '00', '00',) // Query Which Bank is Current(0x19)
+		this.sendCommandWithAddr('05', '68', '49', '01', '00', '') // undocummented - ask about card 1 on/off status
+		this.sendCommandWithAddr('06', '68', '49', '01', '00', '') // undocummented - ask about card 1 on/off status
 		//how to ask, Which Page is Current? it's mentioned in API documentation 
 	}
 
@@ -181,6 +202,21 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 					this.emitConnectionStatusOK()
 					this.deviceStatus.currentBank = currentBank
 					return this.logFeedback(redeableMsg, 'Current bank:' + currentBank)
+				}
+			} else if (DAT1 == '48' || DAT1 == '49') {
+				// Turn off and on output card (0x48)
+				if (ADDR == '05' || ADDR == '06') {
+					let turnStatus = parseInt(DAT2, this.PARSE_INT_HEX_MODE)
+					if (turnStatus == CARD_TURN_ON || turnStatus == CARD_TURN_OFF) {
+						this.emitConnectionStatusOK()
+						if (ADDR == '05') {
+							this.deviceStatus.card1Status = turnStatus
+							return this.logFeedback(redeableMsg, 'Card 1 status:' + (turnStatus == CARD_TURN_OFF ? "off" : "on"))
+						} else if (ADDR == '06') {
+							this.deviceStatus.card2Status = turnStatus
+							return this.logFeedback(redeableMsg, 'Card 2 status:' + (turnStatus == CARD_TURN_OFF ? "off" : "on"))
+						}
+					}
 				}
 			}
 		}
