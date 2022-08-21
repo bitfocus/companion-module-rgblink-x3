@@ -11,16 +11,20 @@ const instance_skel = require('../../instance_skel')
 
 const {
 	RGBLinkX3Connector,
+	POWER_OFF,
+	POWER_ON,
 } = require('./rgblink_x3_connector')
 
 var DEFAULT_X3_PORT = 1000
 
-// const SOURCE_CHOICES_PART = [
-// 	{ id: '1', label: '1' },
-// 	{ id: '2', label: '2' },
-// 	{ id: '3', label: '3' },
-// 	{ id: '4', label: '4' },
-// ]
+const FEEDBACK_POWER_STATUS = 'feedback_power_on_off'
+
+const ACTION_POWER_ON_OFF = 'power_on_or_off'
+
+const CHOICES_PART_POWER_ON_OFF = [
+	{ id: POWER_OFF, label: 'Power OFF' },
+	{ id: POWER_ON, label: 'Power ON' },
+]
 
 // const SWITCH_MODE_CHOICES_PART = [
 // 	{ id: SWITCH_MODE_AUTO, label: 'Quick/Auto (Live output)' },
@@ -130,47 +134,35 @@ class instance extends instance_skel {
 			self.status(self.STATUS_ERROR, message)
 		})
 		this.status(this.STATUS_WARNING, 'Connecting')
-		this.apiConnector.sendConnectMessage()
 		this.apiConnector.askAboutStatus()
 	}
 
 	initActions() {
 		let actions = {}
 
-		// actions['switch_mode_and_source'] = {
-		// 	label: 'Select source and target',
-		// 	options: [
-		// 		{
-		// 			type: 'dropdown',
-		// 			label: 'Source number',
-		// 			id: 'sourceNumber',
-		// 			default: '1',
-		// 			tooltip: 'Choose source number, which should be selected',
-		// 			choices: SOURCE_CHOICES_PART,
-		// 			minChoicesForSearch: 0,
-		// 		},
-		// 		{
-		// 			type: 'dropdown',
-		// 			label: 'Mode',
-		// 			id: 'mode',
-		// 			default: SWITCH_MODE_AUTO,
-		// 			tooltip: 'Choose mode',
-		// 			choices: SWITCH_MODE_CHOICES_PART,
-		// 			minChoicesForSearch: 0,
-		// 		},
-		// 	],
-		// 	callback: (action /*, bank*/) => {
-		// 		this.apiConnector.sendSwitchModeMessage(action.options.mode)
-		// 		this.apiConnector.sendPIPModeMessage(PIP_MODE_OFF)
-		// 		this.apiConnector.sendSwitchToSourceMessage(action.options.sourceNumber)
-		// 	},
-		// }
+		actions[ACTION_POWER_ON_OFF] = {
+			label: 'Power ON/OFF device',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'On or off',
+					id: 'onOrOff',
+					default: '1',
+					tooltip: 'Choose, what should be done',
+					choices: CHOICES_PART_POWER_ON_OFF,
+					minChoicesForSearch: 0,
+				}
+			],
+			callback: (action /*, bank*/) => {
+				this.apiConnector.sendPowerOnOrOff(action.options.onOrOff)
+			},
+		}
 
 		this.setActions(actions)
 	}
 
 	checkAllFeedbacks() {
-		// this.checkFeedbacks('set_source')
+		this.checkFeedbacks(FEEDBACK_POWER_STATUS)
 		// this.checkFeedbacks('set_source_preview')
 		// this.checkFeedbacks('set_mode')
 		// this.checkFeedbacks('set_pip_mode')
@@ -196,84 +188,112 @@ class instance extends instance_skel {
 	}
 
 	feedback(feedback /*, bank*/) {
-		this.debug('TODO feedback checking:' + feedback)
-		// if (feedback.type == 'set_source') {
-		// 	return feedback.options.sourceNumber == this.apiConnector.deviceStatus.liveSource
-		// } else if (feedback.type == 'set_source_preview') {
-		// 	return feedback.options.sourceNumber == this.apiConnector.deviceStatus.prevSource
-		// } else if (feedback.type == 'set_mode') {
-		// 	return feedback.options.mode == this.apiConnector.deviceStatus.switchMode
-		// } else if (feedback.type == 'set_pip_mode') {
-		// 	return feedback.options.mode == this.apiConnector.deviceStatus.pipMode
-		// } else if (feedback.type == 'set_switch_effect') {
-		// 	return feedback.options.mode == this.apiConnector.deviceStatus.switchEffect
-		// } else if (feedback.type == 'set_pip_layer') {
-		// 	return feedback.options.layer == this.apiConnector.deviceStatus.pipLayer
-		// }
+		if (feedback.type == FEEDBACK_POWER_STATUS) {
+			return feedback.options.onOrOff == this.apiConnector.deviceStatus.powerStatus
+			// } else if (feedback.type == 'set_source_preview') {
+			// 	return feedback.options.sourceNumber == this.apiConnector.deviceStatus.prevSource
+			// } else if (feedback.type == 'set_mode') {
+			// 	return feedback.options.mode == this.apiConnector.deviceStatus.switchMode
+			// } else if (feedback.type == 'set_pip_mode') {
+			// 	return feedback.options.mode == this.apiConnector.deviceStatus.pipMode
+			// } else if (feedback.type == 'set_switch_effect') {
+			// 	return feedback.options.mode == this.apiConnector.deviceStatus.switchEffect
+			// } else if (feedback.type == 'set_pip_layer') {
+			// 	return feedback.options.layer == this.apiConnector.deviceStatus.pipLayer
+		}
 
 		return false
 	}
 
 	initFeedbacks() {
 		const feedbacks = {}
-		// feedbacks['set_source'] = {
-		// 	type: 'boolean',
-		// 	label: 'Live source',
-		// 	description: 'Source of HDMI signal',
-		// 	style: {
-		// 		color: this.rgb(255, 255, 255),
-		// 		bgcolor: this.BACKGROUND_COLOR_PROGRAM,
-		// 	},
-		// 	options: [
-		// 		{
-		// 			type: 'dropdown',
-		// 			label: 'Source number',
-		// 			id: 'sourceNumber',
-		// 			default: '1',
-		// 			tooltip: 'Choose source number',
-		// 			choices: SOURCE_CHOICES_PART,
-		// 			minChoicesForSearch: 0,
-		// 		},
-		// 	],
-		// }
+		feedbacks[FEEDBACK_POWER_STATUS] = {
+			type: 'boolean',
+			label: 'Power status',
+			description: 'Power status (ON or OFF)',
+			style: {
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.BACKGROUND_COLOR_PROGRAM,
+			},
+			options: [
+				{
+					type: 'dropdown',
+					label: 'On or off',
+					id: 'onOrOff',
+					default: '1',
+					tooltip: 'Choose power status',
+					choices: CHOICES_PART_POWER_ON_OFF,
+					minChoicesForSearch: 0,
+				}
+			],
+		}
+
 		this.setFeedbackDefinitions(feedbacks)
 	}
 
 	initPresets() {
 		let presets = []
-		// for (var i = 1; i <= 4; i++) {
-		// 	presets.push({
-		// 		category: 'Select source on live output',
-		// 		bank: {
-		// 			style: 'text',
-		// 			text: 'Live source\\n' + i,
-		// 			size: 'auto',
-		// 			color: this.TEXT_COLOR,
-		// 			bgcolor: this.BACKGROUND_COLOR_DEFAULT,
-		// 		},
-		// 		actions: [
-		// 			{
-		// 				action: 'switch_mode_and_source',
-		// 				options: {
-		// 					sourceNumber: i,
-		// 					mode: SWITCH_MODE_AUTO,
-		// 				},
-		// 			},
-		// 		],
-		// 		feedbacks: [
-		// 			{
-		// 				type: 'set_source',
-		// 				options: {
-		// 					sourceNumber: i,
-		// 				},
-		// 				style: {
-		// 					color: this.TEXT_COLOR,
-		// 					bgcolor: this.BACKGROUND_COLOR_PROGRAM,
-		// 				},
-		// 			},
-		// 		],
-		// 	})
-		// }
+
+		presets.push({
+			category: 'Power ON/OFF device',
+			bank: {
+				style: 'text',
+				text: 'Power ON',
+				size: 'auto',
+				color: this.TEXT_COLOR,
+				bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+			},
+			actions: [
+				{
+					action: ACTION_POWER_ON_OFF,
+					options: {
+						onOrOff: POWER_ON,
+					},
+				},
+			],
+			feedbacks: [
+				{
+					type: FEEDBACK_POWER_STATUS,
+					options: {
+						onOrOff: POWER_ON,
+					},
+					style: {
+						color: this.TEXT_COLOR,
+						bgcolor: this.BACKGROUND_COLOR_PROGRAM,
+					},
+				},
+			],
+		})
+		presets.push({
+			category: 'Power ON/OFF device',
+			bank: {
+				style: 'text',
+				text: 'Power OFF',
+				size: 'auto',
+				color: this.TEXT_COLOR,
+				bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+			},
+			actions: [
+				{
+					action: ACTION_POWER_ON_OFF,
+					options: {
+						onOrOff: POWER_OFF,
+					},
+				},
+			],
+			feedbacks: [
+				{
+					type: FEEDBACK_POWER_STATUS,
+					options: {
+						onOrOff: POWER_OFF,
+					},
+					style: {
+						color: this.TEXT_COLOR,
+						bgcolor: this.BACKGROUND_COLOR_PREVIEW,
+					},
+				},
+			],
+		})		
 
 		this.setPresetDefinitions(presets)
 	}

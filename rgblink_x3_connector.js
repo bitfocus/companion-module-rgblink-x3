@@ -147,11 +147,11 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		for (var i = 0; i < 15; i++) {
 			this.sendCommand('68', '15', this.byteToTwoSignHex(i), '00', '00') // query page 1 status (empty or not)
 		}
-		//this.sendCommand('68', '19', '00', '00', '00',) // Query Which Bank is Current(0x19)
-		//this.sendCommandWithAddr('05', '68', '49', '01', '00', '') // undocummented - ask about card 1 on/off status
-		//this.sendCommandWithAddr('06', '68', '49', '01', '00', '') // undocummented - ask about card 1 on/off status
-		//this.sendCommand('78', '01', '00', '00', '00',) // undocummented query switch effect
-		//this.sendCommand('78', '07', '00', '00', '00',) // undocummented query blackout effect
+		this.sendCommand('68', '19', '00', '00', '00',) // Query Which Bank is Current(0x19)
+		this.sendCommand('78', '07', '00', '00', '00', '00') // undocummented query blackout effect
+		
+		//this.sendCommandWithAddr('05', '68', '49', '00', '00', '00') // undocummented/this not work! - ask about card 1 on/off status
+		//this.sendCommandWithAddr('06', '68', '49', '00', '00', '00') // undocummented/this not work! - ask about card 1 on/off status
 		//how to ask, Which Page is Current? it's mentioned in API documentation 
 	}
 
