@@ -23,11 +23,13 @@ const FEEDBACK_POWER_STATUS = 'feedback_power_on_off'
 const FEEDBACK_CURRENT_PAGE = 'feedback_current_page'
 const FEEDBACK_PAGE_IS_EMPTY = 'feedback_page_empty'
 const FEEDBACK_PAGE_IS_NOT_EMPTY = 'feedback_page_not_empty'
+const FEEDBACK_ALL_PAGES_EMPTY = 'feedback_all_pages_empty'
 
 const ACTION_POWER_ON_OFF = 'power_on_or_off'
 const ACTION_PAGE_SAVE = 'page_save'
 const ACTION_PAGE_LOAD = 'page_load'
 const ACTION_PAGE_CLEAR = 'page_clear'
+const ACTION_PAGE_CLEAR_ALL = 'page_clear_all'
 
 const CHOICES_PART_POWER_ON_OFF = [
 	{ id: POWER_OFF, label: 'Power OFF' },
@@ -207,6 +209,15 @@ class instance extends instance_skel {
 			},
 		}
 
+		actions[ACTION_PAGE_CLEAR_ALL] = {
+			label: 'Clear all pages',
+			options: [
+			],
+			callback: (/*action , bank*/) => {
+				this.apiConnector.sendClearAllPages()
+			},
+		}
+
 		this.setActions(actions)
 	}
 
@@ -216,6 +227,7 @@ class instance extends instance_skel {
 			this.checkFeedbacks(FEEDBACK_PAGE_IS_EMPTY)
 			this.checkFeedbacks(FEEDBACK_PAGE_IS_NOT_EMPTY)
 			this.checkFeedbacks(FEEDBACK_CURRENT_PAGE)
+			this.checkFeedbacks(FEEDBACK_ALL_PAGES_EMPTY)
 		} catch (ex) {
 			this.debug(ex)
 		}
@@ -247,6 +259,13 @@ class instance extends instance_skel {
 			return this.apiConnector.deviceStatus.pageEmptyState[feedback.options.pageNumber] === PAGE_IS_EMPTY
 		} else if (feedback.type == FEEDBACK_PAGE_IS_NOT_EMPTY) {
 			return this.apiConnector.deviceStatus.pageEmptyState[feedback.options.pageNumber] === PAGE_IS_NOT_EMPTY
+		} else if (feedback.type == FEEDBACK_ALL_PAGES_EMPTY) {
+			for (var i = 0; i < 16; i++) {
+				if (this.apiConnector.deviceStatus.pageEmptyState[i] !== PAGE_IS_EMPTY) {
+					return false
+				}
+			}
+			return true
 		}
 
 		return false
@@ -335,6 +354,18 @@ class instance extends instance_skel {
 					choices: CHOICES_PART_PAGES,
 					minChoicesForSearch: 0,
 				}
+			],
+		}
+
+		feedbacks[FEEDBACK_ALL_PAGES_EMPTY] = {
+			type: 'boolean',
+			label: 'All pages are empty',
+			description: 'Feedback, if all pages are empty. Helpfull, if using action: Clear all pages',
+			style: {
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.BACKGROUND_COLOR_GREEN,
+			},
+			options: [
 			],
 		}
 
@@ -532,7 +563,36 @@ class instance extends instance_skel {
 					},
 				],
 			})
-		}		
+		}
+
+		let clearAllPages = {
+			category: 'Clear page',
+			bank: {
+				style: 'text',
+				text: 'Clear all pages',
+				size: 'auto',
+				color: this.TEXT_COLOR,
+				bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+			},
+			actions: [
+				{
+					action: ACTION_PAGE_CLEAR_ALL,
+					options: {
+					},
+				},
+			],
+			feedbacks: [
+				{
+					type: FEEDBACK_ALL_PAGES_EMPTY,
+					style: {
+						color: this.TEXT_COLOR,
+						bgcolor: this.BACKGROUND_COLOR_GREEN,
+					},
+				},
+			],
+		}
+		presets.push(clearAllPages)
+
 
 		this.setPresetDefinitions(presets)
 	}

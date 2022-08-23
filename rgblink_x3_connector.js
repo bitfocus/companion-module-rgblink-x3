@@ -26,7 +26,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		lastSavedPage: undefined,
 		lastLoadedPage: undefined,
 		lastClearedPage: undefined,
-		currentPage:undefined,
+		currentPage: undefined,
 		currentBank: undefined,
 		pageEmptyState: [],
 		card1Status: undefined,
@@ -218,7 +218,13 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 					if (pageStatus == PAGE_IS_EMPTY || pageStatus == PAGE_IS_NOT_EMPTY) {
 						this.emitConnectionStatusOK()
 						this.deviceStatus.pageEmptyState[queredPage] = pageStatus
-						return this.logFeedback(redeableMsg, 'Page status:' + (pageStatus == PAGE_IS_EMPTY ? "empty" : "not empty"))
+						return this.logFeedback(redeableMsg, 'Page ' + queredPage + ' status:' + (pageStatus == PAGE_IS_EMPTY ? "empty" : "not empty"))
+					} else if (pageStatus == 255) {
+						// X3 is int turn off state
+						this.emitConnectionStatusOK()
+						this.deviceStatus.pageEmptyState[queredPage] = undefined
+						return this.logFeedback(redeableMsg, 'Page ' + queredPage + ' status: device is turned off')
+
 					}
 				}
 			} else if (DAT1 == '18') {
