@@ -24,12 +24,14 @@ const FEEDBACK_CURRENT_PAGE = 'feedback_current_page'
 const FEEDBACK_PAGE_IS_EMPTY = 'feedback_page_empty'
 const FEEDBACK_PAGE_IS_NOT_EMPTY = 'feedback_page_not_empty'
 const FEEDBACK_ALL_PAGES_EMPTY = 'feedback_all_pages_empty'
+const FEEDBACK_CURRENT_BANK = 'feedback_current_bank'
 
 const ACTION_POWER_ON_OFF = 'power_on_or_off'
 const ACTION_PAGE_SAVE = 'page_save'
 const ACTION_PAGE_LOAD = 'page_load'
 const ACTION_PAGE_CLEAR = 'page_clear'
 const ACTION_PAGE_CLEAR_ALL = 'page_clear_all'
+const ACTION_BANK_LOAD = 'bank_load'
 
 const CHOICES_PART_POWER_ON_OFF = [
 	{ id: POWER_OFF, label: 'Power OFF' },
@@ -41,6 +43,13 @@ const CHOICES_PART_PAGES = [
 ]
 for (var i = 0; i < 16; i++) {
 	CHOICES_PART_PAGES.push({ id: i, label: 'Page ' + (i + 1) })
+}
+
+const CHOICES_PART_BANKS = [
+	//	{ id: 0, label: 'Bank 1' },
+]
+for (i = 0; i < 16; i++) {
+	CHOICES_PART_BANKS.push({ id: i, label: 'Bank ' + (i + 1) })
 }
 
 class instance extends instance_skel {
@@ -218,6 +227,24 @@ class instance extends instance_skel {
 			},
 		}
 
+		actions[ACTION_BANK_LOAD] = {
+			label: 'Load bank',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Bank number',
+					id: 'bankNumber',
+					default: '0',
+					tooltip: 'Choose page',
+					choices: CHOICES_PART_BANKS,
+					minChoicesForSearch: 0,
+				}
+			],
+			callback: (action /*, bank*/) => {
+				this.apiConnector.sendLoadBank(action.options.bankNumber)
+			},
+		}
+
 		this.setActions(actions)
 	}
 
@@ -228,6 +255,7 @@ class instance extends instance_skel {
 			this.checkFeedbacks(FEEDBACK_PAGE_IS_NOT_EMPTY)
 			this.checkFeedbacks(FEEDBACK_CURRENT_PAGE)
 			this.checkFeedbacks(FEEDBACK_ALL_PAGES_EMPTY)
+			this.checkFeedbacks(FEEDBACK_CURRENT_BANK)
 		} catch (ex) {
 			this.debug(ex)
 		}
@@ -266,6 +294,8 @@ class instance extends instance_skel {
 				}
 			}
 			return true
+		} else if (feedback.type == FEEDBACK_CURRENT_BANK) {
+			return feedback.options.bankNumber == this.apiConnector.deviceStatus.currentBank
 		}
 
 		return false
@@ -366,6 +396,27 @@ class instance extends instance_skel {
 				bgcolor: this.BACKGROUND_COLOR_GREEN,
 			},
 			options: [
+			],
+		}
+
+		feedbacks[FEEDBACK_CURRENT_BANK] = {
+			type: 'boolean',
+			label: 'Current bank',
+			description: 'Current bank',
+			style: {
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.BACKGROUND_COLOR_RED,
+			},
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Bank number',
+					id: 'bankNumber',
+					default: '0',
+					tooltip: 'Choose bank',
+					choices: CHOICES_PART_BANKS,
+					minChoicesForSearch: 0,
+				}
 			],
 		}
 
@@ -592,6 +643,39 @@ class instance extends instance_skel {
 			],
 		}
 		presets.push(clearAllPages)
+
+		for (var bank = 0; bank < 16; bank++) {
+			presets.push({
+				category: 'Load bank',
+				bank: {
+					style: 'text',
+					text: 'Load bank\\n' + (bank + 1),
+					size: 'auto',
+					color: this.TEXT_COLOR,
+					bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+				},
+				actions: [
+					{
+						action: ACTION_BANK_LOAD,
+						options: {
+							bankNumber: bank,
+						},
+					},
+				],
+				feedbacks: [
+					{
+						type: FEEDBACK_CURRENT_BANK,
+						options: {
+							bankNumber: bank,
+						},
+						style: {
+							color: this.TEXT_COLOR,
+							bgcolor: this.BACKGROUND_COLOR_RED,
+						},
+					},
+				],
+			})
+		}
 
 
 		this.setPresetDefinitions(presets)
