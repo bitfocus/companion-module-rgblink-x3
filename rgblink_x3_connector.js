@@ -13,7 +13,7 @@ const SWITCH_TARGET_PROGRAM = 0
 const SWITCH_TARGET_PREVIEW = 1
 
 const SWITCH_TRANSITION_DISSOLVE_TAKE = 0
-const SWITCH_TRANSITION_CUT_ = 1
+const SWITCH_TRANSITION_CUT = 1
 
 const BLACKOUT_OFF = 0
 const BLACKOUT_ON = 1
@@ -31,7 +31,9 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		pageEmptyState: [],
 		card1Status: undefined,
 		card2Status: undefined,
-		blackoutStatus: undefined
+		blackoutStatus: undefined,
+		lastSwitchTarget: undefined,
+		lastSwitchTransition: undefined,
 	}
 
 	constructor(host, port, debug, polling) {
@@ -124,7 +126,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 	sendSwitchPresetBank(programOrPreview, switchTransitionEffect) {
 		if (programOrPreview == SWITCH_TARGET_PREVIEW || programOrPreview == SWITCH_TARGET_PROGRAM) {
 			let target = this.byteToTwoSignHex(programOrPreview)
-			if (switchTransitionEffect == SWITCH_TRANSITION_CUT_ || switchTransitionEffect == SWITCH_TRANSITION_DISSOLVE_TAKE) {
+			if (switchTransitionEffect == SWITCH_TRANSITION_CUT || switchTransitionEffect == SWITCH_TRANSITION_DISSOLVE_TAKE) {
 				let transition = this.byteToTwoSignHex(switchTransitionEffect)
 				this.sendCommand('78', '00', target, transition, '00')
 			} else {
@@ -148,9 +150,9 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		for (var i = 0; i < 15; i++) {
 			this.sendCommand('68', '15', this.byteToTwoSignHex(i), '00', '00') // query page 1 status (empty or not)
 		}
-		this.sendCommand('68', '23', '00', '00', '00',) // Query Which Page is Current(0x23)
-		this.sendCommand('68', '19', '00', '00', '00',) // Query Which Bank is Current(0x19)
-		this.sendCommand('78', '07', '00', '00', '00', '00') // undocummented query blackout effect
+		this.sendCommand('68', '23', '00', '00', '00') // Query Which Page is Current(0x23)
+		this.sendCommand('68', '19', '00', '00', '00') // Query Which Bank is Current(0x19)
+		this.sendCommand('78', '07', '00', '00', '00') // undocummented query blackout effect
 	}
 
 	consumeFeedback(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4) {
@@ -270,12 +272,14 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		} else if (CMD == '78') {
 			if (DAT1 == '00' || DAT1 == '01') {
 				//Switch Preset Bank(0x00)
-				if (DAT2 == SWITCH_TARGET_PROGRAM || DAT2 == SWITCH_TARGET_PREVIEW) {
-					if (DAT3 == SWITCH_TRANSITION_CUT_ || DAT3 == SWITCH_TRANSITION_DISSOLVE_TAKE) {
-						let target = parseInt(DAT2, this.PARSE_INT_HEX_MODE)
-						let transition = parseInt(DAT3, this.PARSE_INT_HEX_MODE)
+				let target = parseInt(DAT2, this.PARSE_INT_HEX_MODE)
+				let transition = parseInt(DAT3, this.PARSE_INT_HEX_MODE)
+				if (target == SWITCH_TARGET_PROGRAM || target == SWITCH_TARGET_PREVIEW) {
+					if (transition == SWITCH_TRANSITION_CUT || transition == SWITCH_TRANSITION_DISSOLVE_TAKE) {
 						this.emitConnectionStatusOK()
-						return this.logFeedback(redeableMsg, 'Switch done:' + (target == SWITCH_TARGET_PREVIEW ? "preview" : "program") + ' ' + (transition == SWITCH_TRANSITION_CUT_ ? "cut" : "dissolve"))
+						this.deviceStatus.lastSwitchTarget = target
+						this.deviceStatus.lastSwitchTransition = transition
+						return this.logFeedback(redeableMsg, 'Switch done:' + (target == SWITCH_TARGET_PREVIEW ? "preview" : "program") + ' ' + (transition == SWITCH_TRANSITION_CUT ? "cut" : "dissolve"))
 					}
 				}
 			} else if (DAT1 == '06' || DAT1 == '07') {
@@ -317,4 +321,7 @@ module.exports.POWER_ON = POWER_ON
 module.exports.POWER_OFF = POWER_OFF
 module.exports.PAGE_IS_EMPTY = PAGE_IS_EMPTY
 module.exports.PAGE_IS_NOT_EMPTY = PAGE_IS_NOT_EMPTY
-
+module.exports.SWITCH_TARGET_PROGRAM = SWITCH_TARGET_PROGRAM
+module.exports.SWITCH_TARGET_PREVIEW = SWITCH_TARGET_PREVIEW
+module.exports.SWITCH_TRANSITION_CUT = SWITCH_TRANSITION_CUT
+module.exports.SWITCH_TRANSITION_DISSOLVE_TAKE = SWITCH_TRANSITION_DISSOLVE_TAKE
