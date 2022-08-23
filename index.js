@@ -30,6 +30,7 @@ const FEEDBACK_PAGE_IS_NOT_EMPTY = 'feedback_page_not_empty'
 const FEEDBACK_ALL_PAGES_EMPTY = 'feedback_all_pages_empty'
 const FEEDBACK_CURRENT_BANK = 'feedback_current_bank'
 const FEEDBACK_LAST_SWITCH_TRANSITION_TARGET = 'feedback_last_switch_transition_target'
+const FEEDBACK_LAST_SWITCH_TRANSITION_TARGET_BANK = 'feedback_last_switch_transition_target_bank'
 
 const ACTION_POWER_ON_OFF = 'power_on_or_off'
 const ACTION_PAGE_SAVE = 'page_save'
@@ -38,6 +39,7 @@ const ACTION_PAGE_CLEAR = 'page_clear'
 const ACTION_PAGE_CLEAR_ALL = 'page_clear_all'
 const ACTION_BANK_LOAD = 'bank_load'
 const ACTION_SWITCH_CURRENT_BANK = 'bank_switch_current'
+const ACTION_SWITCH_SELECTED_BANK = 'bank_switch_selected'
 
 const CHOICES_PART_POWER_ON_OFF = [
 	{ id: POWER_OFF, label: 'Power OFF' },
@@ -162,6 +164,43 @@ class instance extends instance_skel {
 	initActions() {
 		let actions = {}
 
+		actions[ACTION_SWITCH_SELECTED_BANK] = {
+			label: 'Switch selected bank',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Bank number',
+					id: 'bankNumber',
+					default: '0',
+					tooltip: 'Choose page',
+					choices: CHOICES_PART_BANKS,
+					minChoicesForSearch: 0,
+				},
+				{
+					type: 'dropdown',
+					label: 'Transition',
+					id: 'transition',
+					default: '0',
+					tooltip: 'Choose transition',
+					choices: CHOICES_PART_SWITCH_TRANSITIONS,
+					minChoicesForSearch: 0,
+				},
+				{
+					type: 'dropdown',
+					label: 'Target',
+					id: 'target',
+					default: '0',
+					tooltip: 'Choose target',
+					choices: CHOICES_PART_SWITCH_TARGET,
+					minChoicesForSearch: 0,
+				},
+			],
+			callback: (action /*, bank*/) => {
+				this.apiConnector.sendLoadBank(action.options.bankNumber)
+				this.apiConnector.sendSwitchPresetBank(action.options.target, action.options.transition)
+			},
+		}
+
 		actions[ACTION_POWER_ON_OFF] = {
 			label: 'Power ON/OFF device',
 			options: [
@@ -254,7 +293,7 @@ class instance extends instance_skel {
 					tooltip: 'Choose page',
 					choices: CHOICES_PART_BANKS,
 					minChoicesForSearch: 0,
-				}
+				},
 			],
 			callback: (action /*, bank*/) => {
 				this.apiConnector.sendLoadBank(action.options.bankNumber)
@@ -300,6 +339,7 @@ class instance extends instance_skel {
 			this.checkFeedbacks(FEEDBACK_ALL_PAGES_EMPTY)
 			this.checkFeedbacks(FEEDBACK_CURRENT_BANK)
 			this.checkFeedbacks(FEEDBACK_LAST_SWITCH_TRANSITION_TARGET)
+			this.checkFeedbacks(FEEDBACK_LAST_SWITCH_TRANSITION_TARGET_BANK)
 		} catch (ex) {
 			this.debug(ex)
 		}
@@ -342,6 +382,8 @@ class instance extends instance_skel {
 			return feedback.options.bankNumber == this.apiConnector.deviceStatus.currentBank
 		} else if (feedback.type == FEEDBACK_LAST_SWITCH_TRANSITION_TARGET) {
 			return (feedback.options.target == this.apiConnector.deviceStatus.lastSwitchTarget) && (feedback.options.transition == this.apiConnector.deviceStatus.lastSwitchTransition)
+		} else if (feedback.type == FEEDBACK_LAST_SWITCH_TRANSITION_TARGET_BANK) {
+			return (feedback.options.target == this.apiConnector.deviceStatus.lastSwitchTarget) && (feedback.options.transition == this.apiConnector.deviceStatus.lastSwitchTransition) && (feedback.options.bankNumber == this.apiConnector.deviceStatus.currentBank)
 		}
 
 		return false
@@ -475,6 +517,45 @@ class instance extends instance_skel {
 				bgcolor: this.BACKGROUND_COLOR_RED,
 			},
 			options: [
+				{
+					type: 'dropdown',
+					label: 'Transition',
+					id: 'transition',
+					default: '0',
+					tooltip: 'Choose transition',
+					choices: CHOICES_PART_SWITCH_TRANSITIONS,
+					minChoicesForSearch: 0,
+				},
+				{
+					type: 'dropdown',
+					label: 'Target',
+					id: 'target',
+					default: '0',
+					tooltip: 'Choose target',
+					choices: CHOICES_PART_SWITCH_TARGET,
+					minChoicesForSearch: 0,
+				},
+			],
+		}
+
+		feedbacks[FEEDBACK_LAST_SWITCH_TRANSITION_TARGET_BANK] = {
+			type: 'boolean',
+			label: 'Last switch transition and target',
+			description: 'Feedback based on last switch transition and last switch target. Bank no matters.',
+			style: {
+				color: this.rgb(255, 255, 255),
+				bgcolor: this.BACKGROUND_COLOR_RED,
+			},
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Bank number',
+					id: 'bankNumber',
+					default: '0',
+					tooltip: 'Choose page',
+					choices: CHOICES_PART_BANKS,
+					minChoicesForSearch: 0,
+				},
 				{
 					type: 'dropdown',
 					label: 'Transition',
@@ -881,6 +962,154 @@ class instance extends instance_skel {
 				},
 			],
 		})
+
+		for (bank = 0; bank < 16; bank++) {
+			presets.push({
+				category: 'Take selected bank to program',
+				bank: {
+					style: 'text',
+					text: 'Take\\nbank ' + (bank + 1) + ' to\\nprogram',
+					size: 'auto',
+					color: this.TEXT_COLOR,
+					bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+				},
+				actions: [
+					{
+						action: ACTION_SWITCH_SELECTED_BANK,
+						options: {
+							transition: SWITCH_TRANSITION_DISSOLVE_TAKE,
+							target: SWITCH_TARGET_PROGRAM,
+							bankNumber: bank,
+						},
+					},
+				],
+				feedbacks: [
+					{
+						type: FEEDBACK_LAST_SWITCH_TRANSITION_TARGET_BANK,
+						options: {
+							transition: SWITCH_TRANSITION_DISSOLVE_TAKE,
+							target: SWITCH_TARGET_PROGRAM,
+							bankNumber: bank,
+						},
+						style: {
+							color: this.TEXT_COLOR,
+							bgcolor: this.BACKGROUND_COLOR_RED,
+						},
+					},
+				],
+			})
+		}
+
+		for (bank = 0; bank < 16; bank++) {
+			presets.push({
+				category: 'Cut selected bank to program',
+				bank: {
+					style: 'text',
+					text: 'Cut\\nbank ' + (bank + 1) + ' to\\nprogram',
+					size: 'auto',
+					color: this.TEXT_COLOR,
+					bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+				},
+				actions: [
+					{
+						action: ACTION_SWITCH_SELECTED_BANK,
+						options: {
+							transition: SWITCH_TRANSITION_CUT,
+							target: SWITCH_TARGET_PROGRAM,
+							bankNumber: bank,
+						},
+					},
+				],
+				feedbacks: [
+					{
+						type: FEEDBACK_LAST_SWITCH_TRANSITION_TARGET_BANK,
+						options: {
+							transition: SWITCH_TRANSITION_CUT,
+							target: SWITCH_TARGET_PROGRAM,
+							bankNumber: bank,
+						},
+						style: {
+							color: this.TEXT_COLOR,
+							bgcolor: this.BACKGROUND_COLOR_RED,
+						},
+					},
+				],
+			})
+		}
+
+		for (bank = 0; bank < 16; bank++) {
+			presets.push({
+				category: 'Take selected bank to preview',
+				bank: {
+					style: 'text',
+					text: 'Take\\nbank ' + (bank + 1) + ' to\\npreview',
+					size: 'auto',
+					color: this.TEXT_COLOR,
+					bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+				},
+				actions: [
+					{
+						action: ACTION_SWITCH_SELECTED_BANK,
+						options: {
+							transition: SWITCH_TRANSITION_DISSOLVE_TAKE,
+							target: SWITCH_TARGET_PREVIEW,
+							bankNumber: bank,
+						},
+					},
+				],
+				feedbacks: [
+					{
+						type: FEEDBACK_LAST_SWITCH_TRANSITION_TARGET_BANK,
+						options: {
+							transition: SWITCH_TRANSITION_DISSOLVE_TAKE,
+							target: SWITCH_TARGET_PREVIEW,
+							bankNumber: bank,
+						},
+						style: {
+							color: this.TEXT_COLOR,
+							bgcolor: this.BACKGROUND_COLOR_RED,
+						},
+					},
+				],
+			})
+		}
+
+		for (bank = 0; bank < 16; bank++) {
+			presets.push({
+				category: 'Cut selected bank to preview',
+				bank: {
+					style: 'text',
+					text: 'Cut\\nbank ' + (bank + 1) + ' to\\npreview',
+					size: 'auto',
+					color: this.TEXT_COLOR,
+					bgcolor: this.BACKGROUND_COLOR_DEFAULT,
+				},
+				actions: [
+					{
+						action: ACTION_SWITCH_SELECTED_BANK,
+						options: {
+							transition: SWITCH_TRANSITION_CUT,
+							target: SWITCH_TARGET_PREVIEW,
+							bankNumber: bank,
+						},
+					},
+				],
+				feedbacks: [
+					{
+						type: FEEDBACK_LAST_SWITCH_TRANSITION_TARGET_BANK,
+						options: {
+							transition: SWITCH_TRANSITION_CUT,
+							target: SWITCH_TARGET_PREVIEW,
+							bankNumber: bank,
+						},
+						style: {
+							color: this.TEXT_COLOR,
+							bgcolor: this.BACKGROUND_COLOR_RED,
+						},
+					},
+				],
+			})
+		}
 
 		this.setPresetDefinitions(presets)
 	}
