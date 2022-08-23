@@ -108,7 +108,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 	}
 
 	sendCardOnOrOff(cardNumber, turnOnorOff) {
-		if (cardNumber == 1 || cardNumber == 1) {
+		if (cardNumber == 1 || cardNumber == 2) {
 			let cardAddr = 4 + cardNumber // 0x05(card 1), 0x06(card 2)
 			cardAddr = this.byteToTwoSignHex(cardAddr)
 			if (turnOnorOff == CARD_TURN_ON || turnOnorOff == CARD_TURN_OFF) {
