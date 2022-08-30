@@ -1,6 +1,6 @@
 ## RGBlink Venus X3
 
-Tested with mini model, with firmware VER: 4.19
+Tested with Venus X3 with firmware VER: 4.19
 
 Should also work with X7, however was not tested with X7.
 
