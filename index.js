@@ -545,8 +545,8 @@ class instance extends instance_skel {
 
 		feedbacks[FEEDBACK_LAST_SWITCH_TRANSITION_TARGET_BANK] = {
 			type: 'boolean',
-			label: 'Last switch transition and target',
-			description: 'Feedback based on last switch transition and last switch target. Bank no matters.',
+			label: 'Last switch transition and target from selected bank',
+			description: 'Feedback based on last switch transition and last switch target from selected bank.',
 			style: {
 				color: this.rgb(255, 255, 255),
 				bgcolor: this.BACKGROUND_COLOR_RED,

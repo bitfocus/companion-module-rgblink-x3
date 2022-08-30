@@ -155,7 +155,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 		}
 		this.sendCommand('68', '23', '00', '00', '00') // Query Which Page is Current(0x23)
 		this.sendCommand('68', '19', '00', '00', '00') // Query Which Bank is Current(0x19)
-		this.sendCommand('78', '07', '00', '00', '00') // undocummented query blackout effect
+		//this.sendCommand('78', '07', '00', '00', '00') // undocummented query blackout effect
 	}
 
 	consumeFeedback(ADDR, SN, CMD, DAT1, DAT2, DAT3, DAT4) {
