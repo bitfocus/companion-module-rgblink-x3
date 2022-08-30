@@ -99,7 +99,7 @@ class instance extends instance_skel {
 						<h3> RGBlink VENUS X3</h3>
 						This module will connect to a RGBlink Processor Venus X3.
 					</div>
-				`
+				`,
 			},
 			{
 				type: 'textinput',
@@ -212,7 +212,7 @@ class instance extends instance_skel {
 					tooltip: 'Choose, what should be done',
 					choices: CHOICES_PART_POWER_ON_OFF,
 					minChoicesForSearch: 0,
-				}
+				},
 			],
 			callback: (action /*, bank*/) => {
 				this.apiConnector.sendPowerOnOrOff(action.options.onOrOff)
@@ -230,7 +230,7 @@ class instance extends instance_skel {
 					tooltip: 'Choose page',
 					choices: CHOICES_PART_PAGES,
 					minChoicesForSearch: 0,
-				}
+				},
 			],
 			callback: (action /*, bank*/) => {
 				this.apiConnector.sendSavePage(action.options.pageNumber)
@@ -248,7 +248,7 @@ class instance extends instance_skel {
 					tooltip: 'Choose page',
 					choices: CHOICES_PART_PAGES,
 					minChoicesForSearch: 0,
-				}
+				},
 			],
 			callback: (action /*, bank*/) => {
 				this.apiConnector.sendLoadPage(action.options.pageNumber)
@@ -266,7 +266,7 @@ class instance extends instance_skel {
 					tooltip: 'Choose page',
 					choices: CHOICES_PART_PAGES,
 					minChoicesForSearch: 0,
-				}
+				},
 			],
 			callback: (action /*, bank*/) => {
 				this.apiConnector.sendClearPage(action.options.pageNumber)
@@ -275,8 +275,7 @@ class instance extends instance_skel {
 
 		actions[ACTION_PAGE_CLEAR_ALL] = {
 			label: 'Clear all pages',
-			options: [
-			],
+			options: [],
 			callback: (/*action , bank*/) => {
 				this.apiConnector.sendClearAllPages()
 			},
@@ -381,9 +380,16 @@ class instance extends instance_skel {
 		} else if (feedback.type == FEEDBACK_CURRENT_BANK) {
 			return feedback.options.bankNumber == this.apiConnector.deviceStatus.currentBank
 		} else if (feedback.type == FEEDBACK_LAST_SWITCH_TRANSITION_TARGET) {
-			return (feedback.options.target == this.apiConnector.deviceStatus.lastSwitchTarget) && (feedback.options.transition == this.apiConnector.deviceStatus.lastSwitchTransition)
+			return (
+				feedback.options.target == this.apiConnector.deviceStatus.lastSwitchTarget &&
+				feedback.options.transition == this.apiConnector.deviceStatus.lastSwitchTransition
+			)
 		} else if (feedback.type == FEEDBACK_LAST_SWITCH_TRANSITION_TARGET_BANK) {
-			return (feedback.options.target == this.apiConnector.deviceStatus.lastSwitchTarget) && (feedback.options.transition == this.apiConnector.deviceStatus.lastSwitchTransition) && (feedback.options.bankNumber == this.apiConnector.deviceStatus.currentBank)
+			return (
+				feedback.options.target == this.apiConnector.deviceStatus.lastSwitchTarget &&
+				feedback.options.transition == this.apiConnector.deviceStatus.lastSwitchTransition &&
+				feedback.options.bankNumber == this.apiConnector.deviceStatus.currentBank
+			)
 		}
 
 		return false
@@ -408,7 +414,7 @@ class instance extends instance_skel {
 					tooltip: 'Choose power status',
 					choices: CHOICES_PART_POWER_ON_OFF,
 					minChoicesForSearch: 0,
-				}
+				},
 			],
 		}
 
@@ -429,7 +435,7 @@ class instance extends instance_skel {
 					tooltip: 'Choose page',
 					choices: CHOICES_PART_PAGES,
 					minChoicesForSearch: 0,
-				}
+				},
 			],
 		}
 
@@ -450,7 +456,7 @@ class instance extends instance_skel {
 					tooltip: 'Choose page',
 					choices: CHOICES_PART_PAGES,
 					minChoicesForSearch: 0,
-				}
+				},
 			],
 		}
 
@@ -471,7 +477,7 @@ class instance extends instance_skel {
 					tooltip: 'Choose page',
 					choices: CHOICES_PART_PAGES,
 					minChoicesForSearch: 0,
-				}
+				},
 			],
 		}
 
@@ -483,8 +489,7 @@ class instance extends instance_skel {
 				color: this.rgb(255, 255, 255),
 				bgcolor: this.BACKGROUND_COLOR_GREEN,
 			},
-			options: [
-			],
+			options: [],
 		}
 
 		feedbacks[FEEDBACK_CURRENT_BANK] = {
@@ -504,7 +509,7 @@ class instance extends instance_skel {
 					tooltip: 'Choose bank',
 					choices: CHOICES_PART_BANKS,
 					minChoicesForSearch: 0,
-				}
+				},
 			],
 		}
 
@@ -785,8 +790,7 @@ class instance extends instance_skel {
 			actions: [
 				{
 					action: ACTION_PAGE_CLEAR_ALL,
-					options: {
-					},
+					options: {},
 				},
 			],
 			feedbacks: [

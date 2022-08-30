@@ -116,7 +116,7 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 			if (turnOnorOff == CARD_TURN_ON || turnOnorOff == CARD_TURN_OFF) {
 				this.sendCommandWithAddr(cardAddr, '68', '48', this.byteToTwoSignHex(turnOnorOff), '00', '00')
 			} else {
-				this.debug("Wrong turn on/off parameter:" + turnOnorOff)
+				this.debug('Wrong turn on/off parameter:' + turnOnorOff)
 			}
 		} else {
 			this.debug('Wrong card number:' + cardNumber)
@@ -126,7 +126,10 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 	sendSwitchPresetBank(programOrPreview, switchTransitionEffect) {
 		if (programOrPreview == SWITCH_TARGET_PREVIEW || programOrPreview == SWITCH_TARGET_PROGRAM) {
 			let target = this.byteToTwoSignHex(programOrPreview)
-			if (switchTransitionEffect == SWITCH_TRANSITION_CUT || switchTransitionEffect == SWITCH_TRANSITION_DISSOLVE_TAKE) {
+			if (
+				switchTransitionEffect == SWITCH_TRANSITION_CUT ||
+				switchTransitionEffect == SWITCH_TRANSITION_DISSOLVE_TAKE
+			) {
 				let transition = this.byteToTwoSignHex(switchTransitionEffect)
 				this.sendCommand('78', '00', target, transition, '00')
 			} else {
@@ -220,13 +223,15 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 					if (pageStatus == PAGE_IS_EMPTY || pageStatus == PAGE_IS_NOT_EMPTY) {
 						this.emitConnectionStatusOK()
 						this.deviceStatus.pageEmptyState[queredPage] = pageStatus
-						return this.logFeedback(redeableMsg, 'Page ' + queredPage + ' status:' + (pageStatus == PAGE_IS_EMPTY ? "empty" : "not empty"))
+						return this.logFeedback(
+							redeableMsg,
+							'Page ' + queredPage + ' status:' + (pageStatus == PAGE_IS_EMPTY ? 'empty' : 'not empty')
+						)
 					} else if (pageStatus == 255) {
 						// X3 is int turn off state
 						this.emitConnectionStatusOK()
 						this.deviceStatus.pageEmptyState[queredPage] = undefined
 						return this.logFeedback(redeableMsg, 'Page ' + queredPage + ' status: device is turned off')
-
 					}
 				}
 			} else if (DAT1 == '18') {
@@ -261,10 +266,10 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 						this.emitConnectionStatusOK()
 						if (ADDR == '05') {
 							this.deviceStatus.card1Status = turnStatus
-							return this.logFeedback(redeableMsg, 'Card 1 status:' + (turnStatus == CARD_TURN_OFF ? "off" : "on"))
+							return this.logFeedback(redeableMsg, 'Card 1 status:' + (turnStatus == CARD_TURN_OFF ? 'off' : 'on'))
 						} else if (ADDR == '06') {
 							this.deviceStatus.card2Status = turnStatus
-							return this.logFeedback(redeableMsg, 'Card 2 status:' + (turnStatus == CARD_TURN_OFF ? "off" : "on"))
+							return this.logFeedback(redeableMsg, 'Card 2 status:' + (turnStatus == CARD_TURN_OFF ? 'off' : 'on'))
 						}
 					}
 				}
@@ -279,7 +284,13 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 						this.emitConnectionStatusOK()
 						this.deviceStatus.lastSwitchTarget = target
 						this.deviceStatus.lastSwitchTransition = transition
-						return this.logFeedback(redeableMsg, 'Switch done:' + (target == SWITCH_TARGET_PREVIEW ? "preview" : "program") + ' ' + (transition == SWITCH_TRANSITION_CUT ? "cut" : "dissolve"))
+						return this.logFeedback(
+							redeableMsg,
+							'Switch done:' +
+								(target == SWITCH_TARGET_PREVIEW ? 'preview' : 'program') +
+								' ' +
+								(transition == SWITCH_TRANSITION_CUT ? 'cut' : 'dissolve')
+						)
 					}
 				}
 			} else if (DAT1 == '06' || DAT1 == '07') {
@@ -300,11 +311,11 @@ class RGBLinkX3Connector extends RGBLinkApiConnector {
 	}
 
 	isValidPageNumber(pageNumber) {
-		return (pageNumber >= 0 && pageNumber <= 15)
+		return pageNumber >= 0 && pageNumber <= 15
 	}
 
 	isValidBankNumber(bankNumber) {
-		return (bankNumber >= 0 && bankNumber <= 15)
+		return bankNumber >= 0 && bankNumber <= 15
 	}
 
 	logFeedback(redeableMsg, info) {
