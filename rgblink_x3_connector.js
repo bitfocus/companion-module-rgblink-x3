@@ -1,4 +1,4 @@
-const RGBLinkApiConnector = require('./../companion-module-rgblink-mini/rgblinkapiconnector')
+const RGBLinkApiConnector = require('./rgblinkapiconnector')
 
 const POWER_OFF = 0
 const POWER_ON = 1
