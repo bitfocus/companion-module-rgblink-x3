@@ -6,7 +6,7 @@
   "product": "Venus X3",
   "shortname": "X3",
   "main": "index.js",
-  "keywords": "[rgblink],[X3],[Venus]",
+  "keywords": ["rgblink", "X3", "Venus"],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
